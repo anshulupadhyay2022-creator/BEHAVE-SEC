@@ -12,7 +12,7 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 // CHANGE THIS string to your live Render backend URL after deploying it!
-const RENDER_BACKEND_URL = 'https://behave-sec-api.onrender.com';
+const RENDER_BACKEND_URL = 'https://behave-sec.onrender.com';
 
 const API_BASE_URL = isLocalhost ? 'http://localhost:8000' : RENDER_BACKEND_URL;
 

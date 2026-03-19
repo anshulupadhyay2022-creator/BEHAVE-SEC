@@ -334,7 +334,7 @@ function saveDraft() {
  */
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
-        window.location.href = 'introduction.html';
+        window.location.href = 'index.html';
     }
 }
 
