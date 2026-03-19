@@ -196,7 +196,7 @@ async function sendToBackend() {
         };
 
         // Send to backend
-        const response = await fetch('http://localhost:8000/collect-data', {
+        const response = await fetch(`${window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.API_BASE_URL : API_BASE_URL}/collect-data`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -214,7 +214,7 @@ async function sendToBackend() {
         }
     } catch (error) {
         console.error('Error sending data to backend:', error);
-        alert(`❌ Failed to connect to backend. Make sure FastAPI server is running on http://localhost:8000\n\nError: ${error.message}`);
+        alert(`❌ Failed to connect to backend. Make sure the API server is running on ${window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.API_BASE_URL : API_BASE_URL}\n\nError: ${error.message}`);
     }
 }
 

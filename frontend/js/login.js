@@ -18,7 +18,7 @@ function handleLogin(e) {
         if (typeof BehaviorTracker !== 'undefined') {
             const tracker = new BehaviorTracker({
                 userId: email,
-                endpoint: 'http://localhost:8000/collect-data'
+                endpoint: `${window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.API_BASE_URL : API_BASE_URL}/collect-data`
             });
             tracker.logEvent('login', null, 'authentication', { status: 'success' });
 

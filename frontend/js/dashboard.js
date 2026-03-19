@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Initialize Tracker
     const tracker = new BehaviorTracker({
         userId: 'demo_user',
-        endpoint: 'http://localhost:8000/collect-data'
+        endpoint: `${window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.API_BASE_URL : API_BASE_URL}/collect-data`
     });
 
     // Make tracker available for games

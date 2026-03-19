@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const response = await fetch('http://localhost:8000/stats');
+        const response = await fetch(`${window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.API_BASE_URL : API_BASE_URL}/stats`);
         const data = await response.json();
         
         // Update summary cards

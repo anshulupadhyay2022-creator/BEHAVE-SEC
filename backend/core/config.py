@@ -20,10 +20,12 @@ class Settings:
 
     # Database URL — SQLite for local dev, PostgreSQL for production
     # Override by setting DATABASE_URL in .env
-    DATABASE_URL: str = os.environ.get(
+    _raw_db_url: str = os.environ.get(
         "DATABASE_URL",
         "sqlite+aiosqlite:///./data/behave_sec.db",  # local default
     )
+    # Render provides `postgres://` but SQLAlchemy asyncpg requires `postgresql+asyncpg://`
+    DATABASE_URL: str = _raw_db_url.replace("postgres://", "postgresql+asyncpg://", 1) if _raw_db_url.startswith("postgres://") else _raw_db_url
 
     # Uvicorn / server settings (used by init_backend.py; kept here for reference)
     HOST: str = os.environ.get("BACKEND_HOST", "0.0.0.0")

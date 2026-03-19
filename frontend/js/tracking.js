@@ -5,7 +5,9 @@ class BehaviorTracker {
     constructor(options = {}) {
         this.userId = options.userId || 'guest_' + Math.floor(Math.random() * 10000);
         this.sessionId = options.sessionId || Date.now().toString();
-        this.endpoint = options.endpoint || 'http://localhost:8000/collect-data';
+        // Default to dynamic API URL from config.js
+        const defaultEndpoint = (typeof API_BASE_URL !== 'undefined') ? `${API_BASE_URL}/collect-data` : 'http://localhost:8000/collect-data';
+        this.endpoint = options.endpoint || defaultEndpoint;
         this.batchSize = options.batchSize || 50; // Max events to send at once
         this.flushInterval = options.flushInterval || 15000; // 15 seconds
 
