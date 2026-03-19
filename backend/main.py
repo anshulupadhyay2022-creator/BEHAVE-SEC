@@ -15,8 +15,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.core.config import settings
 from backend.api.routes import router
-from backend.db.engine import engine
+from backend.db.engine import engine, AsyncSessionLocal
 from backend.db.models import Base
+from backend.db.repository import get_user_by_email, create_user
+from backend.core.security import get_password_hash
 
 
 @asynccontextmanager
@@ -25,6 +27,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("[DB] Tables ready.")
+
+    # Auto-create admin user for testing
+    async with AsyncSessionLocal() as session:
+        existing = await get_user_by_email(session, "admin@behave.sec")
+        if not existing:
+            await create_user(session, "Admin User", "admin@behave.sec", get_password_hash("password"))
+            print("[DB] Created default 'admin@behave.sec' user.")
+
     yield
     # Optional: close engine on shutdown
     await engine.dispose()
