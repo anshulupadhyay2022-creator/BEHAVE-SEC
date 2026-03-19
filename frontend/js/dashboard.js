@@ -1,7 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('token');
+    if (!userId || !token) {
+        window.location.href = 'login.html';
+        return;
+    }
+
     // 1. Initialize Tracker
     const tracker = new BehaviorTracker({
-        userId: 'demo_user',
+        userId: userId,
         endpoint: `${window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.API_BASE_URL : API_BASE_URL}/collect-data`
     });
 
@@ -20,7 +27,50 @@ document.addEventListener('DOMContentLoaded', () => {
     initNotes();
     startSessionTimer();
     initLiveChart();
+    initWebSocket(userId, token);
 });
+
+function initWebSocket(userId, token) {
+    const wsUrl = window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.WS_BASE_URL : 'ws://localhost:8000';
+    const ws = new WebSocket(`${wsUrl}/ws/dashboard?token=${token}`);
+    
+    ws.onopen = () => {
+        console.log("WebSocket connected.");
+        ws.send(JSON.stringify({ type: "init", userId: userId }));
+    };
+
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        console.log("WS Data:", msg);
+
+        if (msg.type === "new_session") {
+            const riskLabel = document.getElementById("risk-score");
+            const anomalyLabel = document.getElementById("anomaly-label");
+
+            if (riskLabel && anomalyLabel) {
+                riskLabel.innerText = msg.riskScore + "/100";
+                
+                if (msg.anomalyLabel === "anomaly") {
+                    anomalyLabel.innerText = "DETECTED";
+                    anomalyLabel.style.color = "var(--error)";
+                    riskLabel.style.color = "var(--error)";
+                } else {
+                    anomalyLabel.innerText = "Normal";
+                    anomalyLabel.style.color = "var(--success)";
+                    riskLabel.style.color = "var(--success)";
+                }
+            }
+        } else if (msg.type === "force_logout") {
+            alert("SECURITY ALERT: " + msg.reason);
+            localStorage.removeItem("token"); // Invalidates current token
+            localStorage.setItem("mfaEmail", localStorage.getItem("userEmail"));
+            window.location.href = "mfa.html";
+        }
+    };
+
+    ws.onerror = (error) => console.error("WebSocket Error:", error);
+    ws.onclose = () => console.log("WebSocket disconnected.");
+}
 
 // --- LIVE CHART LOGIC ---
 // Helper to get CSS variable value

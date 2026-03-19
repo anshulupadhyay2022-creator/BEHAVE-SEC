@@ -1,40 +1,47 @@
 // Handle login form submission
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
-    // Here you would typically send this to your backend
-    console.log('Login attempt:', { email, password });
+    try {
+        const response = await fetch(`${window.BEHAVE_CONFIG.API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
 
-    // Simple Validation for Demo
-    if (email === 'admin@behave.sec' && password === 'password') {
-        // Successful login
-        console.log('Login successful');
-        const user = { name: 'Admin User', email: email };
-        localStorage.setItem('user', JSON.stringify(user));
+        const data = await response.json();
 
-        // Initialize tracker to send immediate data
-        if (typeof BehaviorTracker !== 'undefined') {
-            const tracker = new BehaviorTracker({
-                userId: email,
-                endpoint: `${window.BEHAVE_CONFIG ? window.BEHAVE_CONFIG.API_BASE_URL : API_BASE_URL}/collect-data`
-            });
-            tracker.logEvent('login', null, 'authentication', { status: 'success' });
+        if (response.ok) {
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('userId', data.user.id);
+            localStorage.setItem('userEmail', data.user.email);
 
-            // Force flush immediately, then redirect
-            tracker.flushData().then(() => {
+            // Initialize tracker to send immediate data
+            if (typeof BehaviorTracker !== 'undefined') {
+                const tracker = new BehaviorTracker({
+                    userId: data.user.id,
+                    endpoint: `${window.BEHAVE_CONFIG.API_BASE_URL}/collect-data`
+                });
+                tracker.logEvent('login', null, 'authentication', { status: 'success' });
+                tracker.flushData().then(() => {
+                    window.location.href = 'dashboard.html';
+                }).catch(() => {
+                    window.location.href = 'dashboard.html';
+                });
+            } else {
                 window.location.href = 'dashboard.html';
-            }).catch(() => {
-                // If backend is down, still redirect
-                window.location.href = 'dashboard.html';
-            });
+            }
+        } else if (response.status === 403) {
+            alert('Account is locked due to unusual activity. Redirecting to MFA verification.');
+            localStorage.setItem('mfaEmail', email);
+            window.location.href = 'mfa.html';
         } else {
-            window.location.href = 'dashboard.html';
+            alert(data.detail || 'Login failed.');
         }
-
-    } else {
-        // Invalid login
-        alert('Invalid credentials. Please use the default: admin@behave.sec / password');
+    } catch (err) {
+        console.error('Login error:', err);
+        alert('Error connecting to the server.');
     }
 }

@@ -5,12 +5,37 @@ SQLAlchemy ORM model for the `sessions` table.
 
 import uuid
 
-from sqlalchemy import JSON, DateTime, Float, Integer, String, func
+from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
     pass
+
+
+class User(Base):
+    """User account model for Authentication and MFA."""
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # MFA / Lockout fields
+    otp_code: Mapped[str | None] = mapped_column(String(10))
+    otp_expires_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True))
+    locked_out: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
 
 
 class Session(Base):
@@ -38,6 +63,7 @@ class Session(Base):
 
     # Device metadata
     user_agent: Mapped[str | None] = mapped_column(String(512))
+    ip_address: Mapped[str | None] = mapped_column(String(45))
     screen_width: Mapped[int | None] = mapped_column(Integer)
     screen_height: Mapped[int | None] = mapped_column(Integer)
     session_duration_ms: Mapped[int | None] = mapped_column(Integer)
@@ -50,3 +76,5 @@ class Session(Base):
     # Anomaly detection output
     anomaly_label: Mapped[str | None] = mapped_column(String(32))   # "normal" / "anomaly" / "pending"
     anomaly_score: Mapped[float | None] = mapped_column(Float)
+    risk_score: Mapped[float | None] = mapped_column(Float)
+    hijack_suspected: Mapped[bool | None] = mapped_column(Boolean, default=False)

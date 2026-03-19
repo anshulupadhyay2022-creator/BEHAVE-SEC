@@ -15,7 +15,9 @@ const isLocalhost = window.location.hostname === 'localhost' || window.location.
 const RENDER_BACKEND_URL = 'https://behave-sec.onrender.com';
 
 const API_BASE_URL = isLocalhost ? 'http://localhost:8000' : RENDER_BACKEND_URL;
+const WS_BASE_URL = isLocalhost ? 'ws://localhost:8000' : RENDER_BACKEND_URL.replace('http', 'ws');
 
 window.BEHAVE_CONFIG = {
-    API_BASE_URL: API_BASE_URL
+    API_BASE_URL: API_BASE_URL,
+    WS_BASE_URL: WS_BASE_URL
 };

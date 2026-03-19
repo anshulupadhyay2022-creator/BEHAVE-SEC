@@ -1,5 +1,5 @@
 // Handle signup form submission
-function handleSignup(e) {
+async function handleSignup(e) {
     e.preventDefault();
     const fullName = document.getElementById('fullname').value;
     const email = document.getElementById('email').value;
@@ -11,16 +11,31 @@ function handleSignup(e) {
         alert("Passwords do not match!");
         return;
     }
-
     if (!terms) {
         alert("Please accept the Terms of Service.");
         return;
     }
 
-    // Here you would typically send this to your backend
-    console.log('Signup attempt:', { fullName, email, password });
+    try {
+        const response = await fetch(`${window.BEHAVE_CONFIG.API_BASE_URL}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ full_name: fullName, email: email, password: password })
+        });
 
-    // For demo purposes, we'll redirect to the login page (or directly to dashboard)
-    alert("Account created successfully! Redirecting to login...");
-    window.location.href = 'login.html';
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("Account created successfully! Logging you in...");
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('userId', data.user.id);
+            localStorage.setItem('userEmail', data.user.email);
+            window.location.href = 'dashboard.html';
+        } else {
+            alert(data.detail || "Signup failed.");
+        }
+    } catch (err) {
+        console.error('Signup error:', err);
+        alert('Error connecting to the server.');
+    }
 }

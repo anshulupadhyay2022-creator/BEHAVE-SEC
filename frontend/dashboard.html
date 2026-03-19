@@ -25,7 +25,11 @@
             <a href="analysis.html">Analysis</a>
             <a href="#settings">Settings</a>
         </div>
-        <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+        <button class="logout-btn" onclick="
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            window.location.href='login.html'
+        ">Logout</button>
     </nav>
 
     <!-- Main Container -->
@@ -35,8 +39,12 @@
             <!-- 1. Stats Panel -->
             <div class="card stats-panel">
                 <div class="stat-item">
-                    <div class="stat-value" style="color: var(--success)">Low Risk</div>
-                    <div class="stat-label">Current Status</div>
+                    <div class="stat-value" id="risk-score" style="color: var(--success)">0</div>
+                    <div class="stat-label">Risk Score</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="anomaly-label" style="color: var(--success)">Normal</div>
+                    <div class="stat-label">AI Status</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-value" id="session-timer">00:00:00</div>

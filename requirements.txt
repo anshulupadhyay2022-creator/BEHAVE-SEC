@@ -25,3 +25,7 @@ joblib>=1.3.0
 sqlalchemy>=2.0.0
 aiosqlite>=0.20.0      # async SQLite driver (local dev)
 asyncpg>=0.29.0        # async PostgreSQL driver (production)
+
+# Auth stack
+passlib[bcrypt]>=1.7.4
+PyJWT>=2.8.0

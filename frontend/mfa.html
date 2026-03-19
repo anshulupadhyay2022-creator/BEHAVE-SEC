@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA Verification - BEHAVE - SEC</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h2 style="color: #f43334;">Security Alert</h2>
+            <p>Unusual activity detected. Please verify your identity.</p>
+        </div>
+        <form class="login-form" onsubmit="handleMfa(event)">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="your.email@example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="otp">One-Time Password (OTP)</label>
+                <input type="text" id="otp" placeholder="Enter 6-digit code" required>
+            </div>
+            <button type="submit" class="login-btn">Verify Identity</button>
+        </form>
+        <div class="signup-link" style="margin-top: 2rem;">
+            <a href="login.html">Back to Login</a>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/mfa.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+
+</html>

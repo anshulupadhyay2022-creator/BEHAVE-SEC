@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.models import Session as SessionRow
+from backend.db.models import User as UserRow
 
 
 # ── Write ────────────────────────────────────────────────────────────────────
@@ -18,6 +19,9 @@ async def save_session(
     payload: Any,          # BehavioralDataPayload
     anomaly_result: Dict[str, Any],
     event_counts: Dict[str, int],
+    ip_address: str | None = None,
+    risk_score: float | None = None,
+    hijack_suspected: bool = False,
 ) -> SessionRow:
     """Insert a new session row and return it."""
     meta = payload.metadata
@@ -34,6 +38,9 @@ async def save_session(
         events=[e.model_dump() for e in payload.events],
         anomaly_label=anomaly_result.get("label"),
         anomaly_score=anomaly_result.get("score"),
+        ip_address=ip_address,
+        risk_score=risk_score,
+        hijack_suspected=hijack_suspected,
     )
     db.add(row)
     await db.commit()
@@ -55,3 +62,43 @@ async def get_session_by_id(db: AsyncSession, session_id: str) -> SessionRow | N
         select(SessionRow).where(SessionRow.session_id == session_id)
     )
     return result.scalar_one_or_none()
+
+async def get_last_session_by_user(db: AsyncSession, user_id: str) -> SessionRow | None:
+    """Return the most recent session for a given user."""
+    result = await db.execute(
+        select(SessionRow).where(SessionRow.user_id == user_id).order_by(SessionRow.collected_at.desc()).limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+# ── Users ────────────────────────────────────────────────────────────────────
+
+async def get_user_by_email(db: AsyncSession, email: str) -> UserRow | None:
+    """Look up a user by email."""
+    result = await db.execute(select(UserRow).where(UserRow.email == email))
+    return result.scalar_one_or_none()
+
+async def get_user_by_id(db: AsyncSession, user_id: str) -> UserRow | None:
+    """Look up a user by id."""
+    result = await db.execute(select(UserRow).where(UserRow.id == user_id))
+    return result.scalar_one_or_none()
+
+async def create_user(db: AsyncSession, full_name: str, email: str, password_hash: str) -> UserRow:
+    """Create a new user and return it."""
+    row = UserRow(
+        full_name=full_name,
+        email=email,
+        password_hash=password_hash,
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+async def update_user(db: AsyncSession, user: UserRow) -> UserRow:
+    """Update user (e.g., OTP or locked_out state)."""
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
