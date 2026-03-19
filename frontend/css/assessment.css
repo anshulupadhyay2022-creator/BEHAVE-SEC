@@ -1,0 +1,635 @@
+/* Inherit variables from theme.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-main);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(rgba(85, 124, 219, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(85, 124, 219, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    opacity: 0.5;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Background glow effects */
+.bg-glow {
+    position: fixed;
+    border-radius: 50%;
+    z-index: 1;
+    pointer-events: none;
+    filter: blur(120px);
+}
+
+.glow-1 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, var(--accent-primary), transparent);
+    top: 10%;
+    right: 5%;
+    opacity: 0.15;
+    animation: pulse 10s ease-in-out infinite;
+}
+
+.glow-2 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, var(--success), transparent);
+    bottom: 10%;
+    left: 5%;
+    opacity: 0.1;
+    animation: pulse 12s ease-in-out infinite reverse;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.2;
+        transform: scale(1.1);
+    }
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* Header */
+header {
+    padding: 2rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 3rem;
+    animation: fadeInDown 0.8s ease;
+}
+
+.logo {
+    font-family: var(--font-main);
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-secondary);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(85, 124, 219, 0.4);
+}
+
+.logout-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.logout-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    box-shadow: 0 0 10px rgba(85, 124, 219, 0.2);
+}
+
+/* Behavioral Tracking Status */
+.tracking-status {
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 4px;
+    padding: 0.8rem 1.2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    animation: fadeInUp 0.8s ease;
+}
+
+.tracking-indicator {
+    width: 12px;
+    height: 12px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: blink 2s ease-in-out infinite;
+    box-shadow: 0 0 10px var(--success);
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.tracking-status span {
+    color: var(--success);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.tracking-status small {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-left: auto;
+}
+
+/* Progress Bar */
+.progress-container {
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.8s ease 0.2s backwards;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.progress-title {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.progress-percentage {
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(85, 124, 219, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary), var(--success));
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 15px rgba(85, 124, 219, 0.6);
+}
+
+/* Data Export Section */
+.data-export {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeInUp 0.8s ease 0.3s backwards;
+}
+
+.data-export-info {
+    flex: 1;
+}
+
+.data-export-info h4 {
+    color: var(--accent-primary);
+    margin-bottom: 0.3rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.data-export-info p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.export-buttons {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.export-btn {
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.export-btn:hover {
+    background: rgba(85, 124, 219, 0.1);
+    box-shadow: 0 0 15px rgba(85, 124, 219, 0.2);
+}
+
+.export-btn.console {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.export-btn.console:hover {
+    background: rgba(76, 175, 80, 0.1);
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+/* Main Content */
+.assessment-intro {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.8s ease 0.4s backwards;
+}
+
+.assessment-intro h1 {
+    font-family: var(--font-main);
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--accent-primary);
+    text-shadow: 0 0 20px rgba(85, 124, 219, 0.3);
+    font-weight: 800;
+}
+
+.assessment-intro p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-size: 1.05rem;
+}
+
+/* Question Cards */
+.question-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    animation: fadeInUp 0.8s ease backwards;
+    transition: all 0.3s ease;
+}
+
+.question-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+}
+
+.question-number {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: #fff;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.question-title {
+    font-family: var(--font-main);
+    font-size: 1.4rem;
+    margin-bottom: 1.5rem;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Input Styles */
+.input-group {
+    margin-bottom: 1.5rem;
+}
+
+.input-group label {
+    display: block;
+    color: var(--text-secondary);
+    margin-bottom: 0.7rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.text-input,
+.textarea-input {
+    width: 100%;
+    background: rgba(13, 17, 23, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.9rem 1rem;
+    color: #ffffff;
+    font-size: 1rem;
+    font-family: var(--font-main);
+    transition: all 0.3s ease;
+}
+
+.textarea-input {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.text-input:focus,
+.textarea-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(85, 124, 219, 0.2);
+    background: rgba(13, 17, 23, 0.8);
+}
+
+.text-input::placeholder,
+.textarea-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+/* Radio and Checkbox Styles */
+.options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.2rem;
+    background: rgba(13, 17, 23, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.option-item:hover {
+    background: rgba(85, 124, 219, 0.05);
+    border-color: var(--accent-primary);
+}
+
+.option-item input[type="radio"],
+.option-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 1rem;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+}
+
+.option-item label {
+    cursor: pointer;
+    flex: 1;
+    color: var(--text-secondary);
+    margin: 0;
+    font-weight: 500;
+}
+
+.option-item input:checked+label {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Range Slider */
+.range-container {
+    margin: 1.5rem 0;
+}
+
+.range-value-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.range-current-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    text-shadow: 0 0 15px rgba(85, 124, 219, 0.5);
+}
+
+.range-input {
+    width: 100%;
+    height: 8px;
+    background: rgba(85, 124, 219, 0.1);
+    border-radius: 10px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--success));
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(85, 124, 219, 0.6);
+    transition: transform 0.2s ease;
+}
+
+.range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.range-input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--success));
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 15px rgba(85, 124, 219, 0.6);
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* Submit Button */
+.submit-section {
+    display: flex;
+    gap: 1rem;
+    margin-top: 3rem;
+    animation: fadeInUp 0.8s ease backwards;
+}
+
+.submit-btn {
+    flex: 1;
+    background: var(--accent-primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 1.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(85, 124, 219, 0.3);
+    font-family: var(--font-main);
+}
+
+.submit-btn:hover {
+    background: #4a6ec5;
+    transform: translateY(-2px);
+}
+
+.save-draft-btn {
+    background: transparent;
+    color: var(--accent-primary);
+    border: 2px solid var(--accent-primary);
+    box-shadow: 0 0 10px rgba(85, 124, 219, 0.2);
+}
+
+.save-draft-btn:hover {
+    background: rgba(85, 124, 219, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Success Message */
+.success-message {
+    display: none;
+    background: var(--bg-secondary);
+    border: 2px solid var(--success);
+    border-radius: 6px;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 2rem;
+    animation: fadeInUp 0.5s ease;
+}
+
+.success-message.active {
+    display: block;
+}
+
+.success-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.success-message h2 {
+    color: var(--success);
+    font-family: var(--font-main);
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    font-weight: 800;
+}
+
+.success-message p {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.back-btn {
+    background: transparent;
+    color: var(--accent-primary);
+    border: 2px solid var(--accent-primary);
+    padding: 0.8rem 2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.back-btn:hover {
+    background: var(--accent-primary);
+    color: #ffffff;
+}
+
+/* Animations using pre-defined keyframes is fine, no change needed there */
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .assessment-intro h1 {
+        font-size: 2rem;
+    }
+
+    .question-card {
+        padding: 1.5rem;
+    }
+
+    .submit-section {
+        flex-direction: column;
+    }
+
+    .user-info {
+        flex-direction: column;
+    }
+
+    .data-export {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .export-buttons {
+        width: 100%;
+        flex-direction: column;
+    }
+}

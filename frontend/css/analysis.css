@@ -1,0 +1,136 @@
+/* Inherit variables from theme.css */
+
+/* Analysis Grid overrides */
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-gap: 1.5rem;
+    padding-bottom: 3rem;
+}
+
+/* Layout Specifics */
+.summary-card {
+    grid-column: span 3;
+    text-align: center;
+}
+
+.main-chart-card {
+    grid-column: span 8;
+    height: 450px;
+    /* Unified Height */
+    display: flex;
+    flex-direction: column;
+}
+
+.side-chart-card {
+    grid-column: span 4;
+    height: 450px;
+    /* Unified Height */
+    display: flex;
+    flex-direction: column;
+}
+
+.table-card {
+    grid-column: span 12;
+    overflow-x: auto;
+}
+
+/* Generic Scroll Utility */
+.card-scrollable {
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+/* Canvas Container to Ensure Fit */
+.chart-container {
+    flex-grow: 1;
+    position: relative;
+    width: 100%;
+    min-height: 0;
+    /* Flexbox fix for canvas */
+}
+
+/* Data Table Styles */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    color: var(--text-secondary);
+}
+
+.data-table th {
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--accent-primary);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table tr:hover {
+    background: rgba(85, 124, 219, 0.05);
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-safe {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.status-risk {
+    background: rgba(244, 67, 54, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .summary-card {
+        grid-column: span 6;
+    }
+
+    .main-chart-card,
+    .side-chart-card {
+        grid-column: span 12;
+    }
+}
+
+@media (max-width: 768px) {
+    .summary-card {
+        grid-column: span 12;
+    }
+}
+
+/* Session Table Scroll-Fix */
+.session-container {
+    height: auto !important;
+    /* Override fixed height */
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll bar if not needed */
+}
+
+/* Sticky Header for Table */
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 10;
+    box-shadow: 0 2px 2px -1px var(--border-color);
+}

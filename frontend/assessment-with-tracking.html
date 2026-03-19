@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Assessment - BEHAVE SEC</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/assessment.css">
+
+</head>
+
+<body>
+    <!-- Background glow effects -->
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">BEHAVE - SEC</div>
+            <div class="user-info">
+                <div class="user-avatar">JS</div>
+                <span>John Smith</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- Behavioral Tracking Status -->
+        <div class="tracking-status">
+            <div class="tracking-indicator"></div>
+            <span>Behavioral Tracking Active</span>
+            <small id="eventCount">Events captured: 0</small>
+        </div>
+
+        <!-- Data Export Section -->
+        <div class="data-export">
+            <div class="data-export-info">
+                <h4>Export Behavioral Data</h4>
+                <p>Download captured user interactions and behavioral patterns</p>
+            </div>
+            <div class="export-buttons">
+                <button class="export-btn console" onclick="logToConsole()">📊 Log to Console</button>
+                <button class="export-btn" onclick="exportToCSV()">📥 Export CSV</button>
+                <button class="export-btn" onclick="sendToBackend()">🚀 Send to Backend</button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-header">
+                <span class="progress-title">Assessment Progress</span>
+                <span class="progress-percentage" id="progressPercentage">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Introduction -->
+        <div class="assessment-intro">
+            <h1>Security Assessment Form</h1>
+            <p>Help us understand your organization's current security posture. Your responses will enable us to provide
+                tailored recommendations and identify potential vulnerabilities in your digital infrastructure. All
+                information provided is confidential and will be used solely for security analysis purposes.</p>
+        </div>
+
+        <!-- Questions Form -->
+        <form id="assessmentForm">
+            <!-- Question 1: Text Input -->
+            <div class="question-card" style="animation-delay: 0.6s">
+                <span class="question-number">Question 1</span>
+                <h3 class="question-title">What is your organization's primary industry?</h3>
+                <div class="input-group">
+                    <label for="industry">Industry Sector</label>
+                    <input type="text" id="industry" name="industry" class="text-input"
+                        placeholder="e.g., Healthcare, Finance, Technology, Manufacturing..." required>
+                </div>
+            </div>
+
+            <!-- Question 2: Multiple Choice -->
+            <div class="question-card" style="animation-delay: 0.7s">
+                <span class="question-number">Question 2</span>
+                <h3 class="question-title">How many employees does your organization have?</h3>
+                <div class="options-group">
+                    <div class="option-item">
+                        <input type="radio" id="size1" name="company-size" value="1-50" required>
+                        <label for="size1">1-50 employees</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="size2" name="company-size" value="51-200">
+                        <label for="size2">51-200 employees</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="size3" name="company-size" value="201-1000">
+                        <label for="size3">201-1,000 employees</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="size4" name="company-size" value="1000+">
+                        <label for="size4">1,000+ employees</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 3: Checkboxes -->
+            <div class="question-card" style="animation-delay: 0.8s">
+                <span class="question-number">Question 3</span>
+                <h3 class="question-title">Which security measures do you currently have in place?</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Select all that apply
+                </p>
+                <div class="options-group">
+                    <div class="option-item">
+                        <input type="checkbox" id="measure1" name="security-measures" value="firewall">
+                        <label for="measure1">Firewall Protection</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="checkbox" id="measure2" name="security-measures" value="antivirus">
+                        <label for="measure2">Antivirus Software</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="checkbox" id="measure3" name="security-measures" value="encryption">
+                        <label for="measure3">Data Encryption</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="checkbox" id="measure4" name="security-measures" value="mfa">
+                        <label for="measure4">Multi-Factor Authentication</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="checkbox" id="measure5" name="security-measures" value="training">
+                        <label for="measure5">Security Awareness Training</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="checkbox" id="measure6" name="security-measures" value="monitoring">
+                        <label for="measure6">24/7 Security Monitoring</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 4: Range Slider -->
+            <div class="question-card" style="animation-delay: 0.9s">
+                <span class="question-number">Question 4</span>
+                <h3 class="question-title">How would you rate your current security infrastructure?</h3>
+                <div class="range-container">
+                    <div class="range-value-display">
+                        <span style="color: var(--text-secondary);">Rating:</span>
+                        <span class="range-current-value" id="securityRating">5</span>
+                    </div>
+                    <input type="range" id="security-rating" name="security-rating" min="1" max="10" value="5"
+                        class="range-input" oninput="updateRangeValue(this.value)">
+                    <div class="range-labels">
+                        <span>Poor (1)</span>
+                        <span>Excellent (10)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 5: Textarea -->
+            <div class="question-card" style="animation-delay: 1s">
+                <span class="question-number">Question 5</span>
+                <h3 class="question-title">Have you experienced any security incidents in the past year?</h3>
+                <div class="input-group">
+                    <label for="incidents">Please describe any incidents, attempted breaches, or security
+                        concerns</label>
+                    <textarea id="incidents" name="incidents" class="textarea-input"
+                        placeholder="Describe your experience with security incidents, including dates, types of threats, and impact on operations..."
+                        required></textarea>
+                </div>
+            </div>
+
+            <!-- Question 6: Text Input -->
+            <div class="question-card" style="animation-delay: 1.1s">
+                <span class="question-number">Question 6</span>
+                <h3 class="question-title">What are your primary security concerns?</h3>
+                <div class="input-group">
+                    <label for="concerns">Main Security Priorities</label>
+                    <textarea id="concerns" name="concerns" class="textarea-input"
+                        placeholder="e.g., Data breaches, ransomware attacks, insider threats, compliance requirements..."
+                        required></textarea>
+                </div>
+            </div>
+
+            <!-- Question 7: Multiple Choice -->
+            <div class="question-card" style="animation-delay: 1.2s">
+                <span class="question-number">Question 7</span>
+                <h3 class="question-title">What is your annual security budget range?</h3>
+                <div class="options-group">
+                    <div class="option-item">
+                        <input type="radio" id="budget1" name="budget" value="under-50k" required>
+                        <label for="budget1">Under $50,000</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="budget2" name="budget" value="50k-200k">
+                        <label for="budget2">$50,000 - $200,000</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="budget3" name="budget" value="200k-500k">
+                        <label for="budget3">$200,000 - $500,000</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="budget4" name="budget" value="500k+">
+                        <label for="budget4">Over $500,000</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 8: Textarea -->
+            <div class="question-card" style="animation-delay: 1.3s">
+                <span class="question-number">Question 8</span>
+                <h3 class="question-title">What specific outcomes are you hoping to achieve with BEHAVE - SEC?</h3>
+                <div class="input-group">
+                    <label for="goals">Your Goals and Expectations</label>
+                    <textarea id="goals" name="goals" class="textarea-input"
+                        placeholder="Share your vision for improved security, compliance goals, or specific problems you want to solve..."
+                        required></textarea>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="submit-section" style="animation-delay: 1.4s">
+                <button type="button" class="submit-btn save-draft-btn" onclick="saveDraft()">Save as Draft</button>
+                <button type="submit" class="submit-btn">Submit Assessment</button>
+            </div>
+        </form>
+
+        <!-- Success Message (Hidden by default) -->
+        <div class="success-message" id="successMessage">
+            <div class="success-icon">✓</div>
+            <h2>Assessment Submitted Successfully!</h2>
+            <p>Thank you for completing the security assessment. Our team will review your responses and contact you
+                within 24-48 hours with personalized recommendations.</p>
+            <button class="back-btn" onclick="window.location.href='introduction.html'">Back to Home</button>
+        </div>
+    </div>
+
+    <script src="js/assessment.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+
+</html>

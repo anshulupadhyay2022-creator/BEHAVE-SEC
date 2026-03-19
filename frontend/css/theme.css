@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Nunito:wght@300;400;600;700&display=swap');
+
+:root {
+    /* Redlight Theme Palette */
+    --kali-bg-dark: #0b0e14;
+    /* Deep Navy/Black */
+    --kali-bg-card: #161b22;
+    /* Keep card dark */
+    --kali-blue: #f43334;
+    /* Primary Red (Replaces Blue) */
+    --kali-cyan: #ff6b6b;
+    /* Secondary Lighter Red (Replaces Cyan) */
+    --kali-red: #d32f2f;
+    /* Darker Red for alerts */
+    --kali-green: #4CAF50;
+    /* Keep Green for success */
+    --kali-text-main: #FFFFFF;
+    --kali-text-muted: #8b949e;
+
+    /* Functional Variables */
+    --bg-primary: var(--kali-bg-dark);
+    --bg-secondary: var(--kali-bg-card);
+    --text-primary: var(--kali-text-main);
+    --text-secondary: var(--kali-text-muted);
+    --accent-primary: var(--kali-blue);
+    --accent-secondary: var(--kali-cyan);
+    --border-color: #30363d;
+    --success: var(--kali-green);
+    --danger: var(--kali-red);
+
+    /* Component Colors (Dark Default) */
+    --navbar-bg: rgba(11, 14, 20, 0.95);
+    --input-bg: rgba(22, 27, 34, 0.8);
+    --code-bg: rgba(0, 0, 0, 0.3);
+    --quiz-option-bg: rgba(255, 255, 255, 0.03);
+
+    /* Chart Colors (Dark Default) */
+    --chart-grid: rgba(255, 255, 255, 0.1);
+    --chart-text: #ffffff;
+    --chart-axis: #8b949e;
+    --chart-primary: #f43334;
+    /* Redlight Red */
+    --chart-primary-bg: rgba(244, 51, 52, 0.2);
+
+    /* Fonts */
+    --font-main: 'Nunito', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+[data-theme="light"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --text-primary: #0b0e14;
+    --text-secondary: #57606a;
+    --border-color: #d0d7de;
+    --chart-text: #24292f;
+    --chart-axis: #57606a;
+    --chart-grid: rgba(0, 0, 0, 0.1);
+    --chart-primary: #d50000;
+    /* Darker Red for Light Mode visibility */
+    --chart-primary-bg: rgba(213, 0, 0, 0.1);
+
+    /* Component Colors Light */
+    --navbar-bg: rgba(255, 255, 255, 0.95);
+    --input-bg: #ffffff;
+    --code-bg: #eaeef2;
+    --quiz-option-bg: #eaeef2;
+
+    /* Adjust accents for better contrast on light if needed */
+    --kali-blue: #0969da;
+    --accent-primary: var(--kali-blue);
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+}
+
+code,
+pre,
+.mono {
+    font-family: var(--font-mono);
+}

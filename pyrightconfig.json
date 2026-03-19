@@ -1,0 +1,19 @@
+{
+    "include": [
+        "."
+    ],
+    "exclude": [
+        ".venv",
+        "venv",
+        "frontend"
+    ],
+    "venvPath": ".",
+    "venv": "venv",
+    "pythonVersion": "3.14",
+    "pythonPlatform": "Windows",
+    "typeCheckingMode": "basic",
+    "extraPaths": [
+        ".",
+        "venv\\Lib\\site-packages"
+    ]
+}

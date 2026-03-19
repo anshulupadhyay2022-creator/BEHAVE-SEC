@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEHAVE - SEC</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/introduction.css">
+
+</head>
+
+<body>
+    <!-- Background shapes -->
+    <canvas id="network-bg"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;"></canvas>
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+
+    <!-- Header -->
+    <header>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="logo">
+                <img src="assets/logo.svg" alt="BEHAVE - SEC"
+                    style="height: 40px; vertical-align: middle; margin-right: 10px;">
+                <span style="vertical-align: middle;">BEHAVE - SEC</span>
+            </div>
+            <a href="#settings"
+                style="text-decoration: none; color: var(--text-secondary); font-weight: 600; font-family: var(--font-main);">Settings</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 style="color: var(--text-primary);">Secure Your <span class="glitch"
+                        data-text="Digital Blueprint">Digital Blueprint</span></h1>
+                <p>Advanced behavioral analytics to detect threats before they manifest.</p>
+                <div class="cta-group">
+                    <a href="login.html" class="btn btn-primary">Initialize System</a>
+                    <button class="btn btn-secondary"
+                        onclick="document.getElementById('network-bg').scrollIntoView({behavior: 'smooth'})">Live
+                        Demo</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Behavioral Analysis</h3>
+                    <p>Advanced machine learning models that detect anomalies and threats through digital behavior
+                        patterns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Real-Time Protection</h3>
+                    <p>Continuous monitoring and threat detection to safeguard your digital infrastructure 24/7.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Adaptive Security</h3>
+                    <p>Self-learning systems that evolve with emerging threats and adapt to your unique environment.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 BEHAVE - SEC. All rights reserved.</p>
+        </div>
+    </footer>
+
+
+
+
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="modal-content"
+            style="background: var(--bg-secondary); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); width: 400px; position: relative; text-align: left;">
+            <span class="close-modal"
+                style="position: absolute; top: 10px; right: 15px; color: var(--text-secondary); cursor: pointer; font-size: 1.5rem;">&times;</span>
+            <h2 style="color: var(--text-primary); margin-bottom: 1.5rem; font-family: var(--font-main);">Settings</h2>
+
+            <div class="setting-item"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <span style="color: var(--text-primary);">Light Mode</span>
+                <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                    <input type="checkbox" id="theme-toggle" style="opacity: 0; width: 0; height: 0;">
+                    <span class="slider round"
+                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--text-secondary); transition: .4s; border-radius: 24px;"></span>
+                    <style>
+                        .slider:before {
+                            position: absolute;
+                            content: "";
+                            height: 16px;
+                            width: 16px;
+                            left: 4px;
+                            bottom: 4px;
+                            background-color: white;
+                            transition: .4s;
+                            border-radius: 50%;
+                        }
+
+                        input:checked+.slider {
+                            background-color: var(--accent-primary);
+                        }
+
+                        input:checked+.slider:before {
+                            transform: translateX(26px);
+                        }
+                    </style>
+                </label>
+            </div>
+
+            <div
+                style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">
+                BEHAVE-SEC v1.0.0
+            </div>
+        </div>
+    </div>
+
+    <script src="js/settings.js"></script>
+    <script src="js/intro-effects.js"></script>
+</body>
+
+</html>

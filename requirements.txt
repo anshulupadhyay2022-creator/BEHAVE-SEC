@@ -1,0 +1,27 @@
+# FastAPI Backend Dependencies
+# Install using: pip install -r requirements.txt
+
+# FastAPI framework
+fastapi>=0.115.0
+
+# ASGI server for running FastAPI
+uvicorn[standard]>=0.30.0
+
+# Data validation
+pydantic>=2.10.0
+
+# Python standard library enhancements
+python-multipart>=0.0.9
+
+# HTTP client (used by test suite)
+requests>=2.32.0
+
+# Machine-learning stack (anomaly detection)
+scikit-learn>=1.4.0
+numpy>=1.26.0
+joblib>=1.3.0
+
+# Database stack
+sqlalchemy>=2.0.0
+aiosqlite>=0.20.0      # async SQLite driver (local dev)
+asyncpg>=0.29.0        # async PostgreSQL driver (production)
