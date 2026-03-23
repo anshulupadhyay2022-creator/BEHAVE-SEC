@@ -141,8 +141,8 @@ class AnomalyDetector:
         pred = self._model.predict(x)[0]
         # decision_function: more negative = more anomalous; normalise to [0, 1]
         raw_score = float(self._model.decision_function(x)[0])
-        # Invert and clip so higher score = more anomalous, range ~[0, 1]
-        normalised = float(np.clip(-raw_score + 0.5, 0.0, 1.0))
+        # Invert, stretch by 5x so anomalies pop out aggressively, then clip
+        normalised = float(np.clip(-raw_score * 5 + 0.5, 0.0, 1.0))
 
         return {
             "label": "normal" if pred == 1 else "anomaly",

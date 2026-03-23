@@ -83,14 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fast-track training: Send 10 identical/jittered sessions so the Isolation Forest trains instantly
         let successCount = 0;
         for (let i = 0; i < 10; i++) {
-            const speedFactor = 0.85 + (Math.random() * 0.3); // Scale typing speed randomly between 0.85x and 1.15x
+            const speedFactor = 0.98 + (Math.random() * 0.04); // Extremely tight variance cluster (0.98x - 1.02x)
             const payload = {
                 userId: CHALLENGE_USER_ID,
                 sessionId: "train_sess_" + i + "_" + Date.now(),
                 events: ownerEvents.map(ev => ({
                     ...ev,
-                    timestamp: ownerStartTime + Math.round((ev.timestamp - ownerStartTime) * speedFactor + (Math.random() * 10 - 5)), 
-                    relativeTime: Math.round(ev.relativeTime * speedFactor + (Math.random() * 10 - 5))
+                    timestamp: ownerStartTime + Math.round((ev.timestamp - ownerStartTime) * speedFactor + (Math.random() * 4 - 2)), 
+                    relativeTime: Math.round(ev.relativeTime * speedFactor + (Math.random() * 4 - 2))
                 })),
                 metadata: {
                     userAgent: navigator.userAgent,
