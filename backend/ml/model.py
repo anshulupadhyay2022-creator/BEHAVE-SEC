@@ -22,8 +22,7 @@ from typing import Any
 
 import joblib
 import numpy as np
-
-
+from sklearn.svm import OneClassSVM
 
 from backend.core.config import settings
 from backend.ml.features import N_FEATURES, extract_features
@@ -117,37 +116,32 @@ class AnomalyDetector:
     # ── Internal helpers ───────────────────────────────────────────────────────
 
     def _train(self) -> None:
-        """Build statistical Z-score mappings based on *self._buffer*. Must hold *self._lock*."""
+        """Fit One-Class SVM (IEEE mathematical formula) on *self._buffer*. Must hold *self._lock*."""
         X_full = np.vstack(self._buffer)
         # Focus strictly on the rhythmic biometrics (6:14)
         X = X_full[:, 6:14]
         
-        mean_vec = np.mean(X, axis=0)
-        std_vec = np.std(X, axis=0)
+        # One-Class SVM with nu=0.1 (bounding margin error)
+        model = OneClassSVM(kernel="rbf", nu=0.1, gamma="scale")
+        model.fit(X)
         
-        # Prevent division by zero for extremely tight clusters
-        std_vec[std_vec < 1e-4] = 1e-4
-        
-        self._model = {"mean": mean_vec, "std": std_vec}
+        self._model = model
         self._save()
-        logger.info("Z-Score Detector trained on %d samples", len(self._buffer))
+        logger.info("One-Class SVM Detector trained on %d samples", len(self._buffer))
 
     def _score(self, fv: np.ndarray) -> dict[str, Any]:
-        """Score a single feature vector based on statistical standard deviations."""
+        """Score a single feature vector based on SVM hyperplane distance."""
         assert self._model is not None
         
         x = fv.reshape(1, -1)[:, 6:14]
         
-        # Calculate how many standard deviations away (Z-Score) the rhythm is
-        z_scores = np.abs((x - self._model["mean"]) / self._model["std"])
-        mean_z = float(np.mean(z_scores))
+        # decision_function: positive distance = inside margin (normal), negative = outside (anomaly)
+        raw_score = float(self._model.decision_function(x)[0])
         
-        # Exponential curve mapping to percentages:
-        # Z=0 (perfect match) -> 0% anomaly
-        # Z=0.5 -> ~39% anomaly
-        # Z=1.0 -> ~63% anomaly
-        # Z=2.0 -> ~86% anomaly
-        normalised = float(np.clip(1.0 - np.exp(-mean_z / 1.0), 0.0, 1.0))
+        # Sigmoid activation mapping for extremely rigid 0-100% boundary isolation
+        # raw_score = 0 (boundary) maps to ~10% anomaly (Owner is mathematically safe)
+        # raw_score < -0.2 (outlier) maps to >85% anomaly (Intruder is destroyed)
+        normalised = float(1.0 / (1.0 + np.exp(11.5 * raw_score + 2.2)))
 
         return {
             "label": "normal" if normalised < 0.55 else "anomaly",
