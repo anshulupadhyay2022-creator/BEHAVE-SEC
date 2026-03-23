@@ -88,8 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionId: "train_sess_" + i + "_" + Date.now(),
                 events: ownerEvents.map(ev => ({
                     ...ev,
-                    timestamp: Math.round(ev.timestamp + (Math.random()*4 - 2)), // Tiny jitter
-                    relativeTime: Math.round(ev.relativeTime + (Math.random()*4 - 2))
+                    timestamp: Math.round(ev.timestamp + (Math.random() * 40 - 20)), // Realistic human jitter (+/- 20ms)
+                    relativeTime: Math.round(ev.relativeTime + (Math.random() * 40 - 20))
                 })),
                 metadata: {
                     userAgent: navigator.userAgent,
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         resultScore.textContent = `Anomaly Detected: ${pct}%`;
 
-        if (anomalyScore > 0.6) {
+        if (anomalyScore > 0.45) {
             // ML Successfully blocked the intruder
             resultTitle.textContent = "ACCESS DENIED";
             resultTitle.style.color = "#ff5252";
