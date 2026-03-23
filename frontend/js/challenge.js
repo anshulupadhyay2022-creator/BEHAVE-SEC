@@ -88,8 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionId: "train_sess_" + i + "_" + Date.now(),
                 events: ownerEvents.map(ev => ({
                     ...ev,
-                    timestamp: ev.timestamp + (Math.random()*4 - 2), // Tiny jitter
-                    relativeTime: ev.relativeTime + (Math.random()*4 - 2)
+                    timestamp: Math.round(ev.timestamp + (Math.random()*4 - 2)), // Tiny jitter
+                    relativeTime: Math.round(ev.relativeTime + (Math.random()*4 - 2))
                 })),
                 metadata: {
                     userAgent: navigator.userAgent,

@@ -122,7 +122,7 @@ class AnomalyDetector:
             n_estimators=N_ESTIMATORS,
             contamination=CONTAMINATION,
             random_state=RANDOM_STATE,
-            n_jobs=-1,
+            n_jobs=1,
         )
         model.fit(X)
         self._model = model
