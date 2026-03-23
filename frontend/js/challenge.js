@@ -83,13 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fast-track training: Send 10 identical/jittered sessions so the Isolation Forest trains instantly
         let successCount = 0;
         for (let i = 0; i < 10; i++) {
+            const speedFactor = 0.85 + (Math.random() * 0.3); // Scale typing speed randomly between 0.85x and 1.15x
             const payload = {
                 userId: CHALLENGE_USER_ID,
                 sessionId: "train_sess_" + i + "_" + Date.now(),
                 events: ownerEvents.map(ev => ({
                     ...ev,
-                    timestamp: Math.round(ev.timestamp + (Math.random() * 40 - 20)), // Realistic human jitter (+/- 20ms)
-                    relativeTime: Math.round(ev.relativeTime + (Math.random() * 40 - 20))
+                    timestamp: ownerStartTime + Math.round((ev.timestamp - ownerStartTime) * speedFactor + (Math.random() * 10 - 5)), 
+                    relativeTime: Math.round(ev.relativeTime * speedFactor + (Math.random() * 10 - 5))
                 })),
                 metadata: {
                     userAgent: navigator.userAgent,
@@ -220,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         resultScore.textContent = `Anomaly Detected: ${pct}%`;
 
-        if (anomalyScore > 0.45) {
+        if (anomalyScore > 0.55) {
             // ML Successfully blocked the intruder
             resultTitle.textContent = "ACCESS DENIED";
             resultTitle.style.color = "#ff5252";
