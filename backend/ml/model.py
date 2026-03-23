@@ -22,7 +22,8 @@ from typing import Any
 
 import joblib
 import numpy as np
-from sklearn.ensemble import IsolationForest
+
+
 
 from backend.core.config import settings
 from backend.ml.features import N_FEATURES, extract_features
@@ -42,7 +43,7 @@ class AnomalyDetector:
 
     def __init__(self, user_id: str) -> None:
         self.user_id = user_id
-        self._model: IsolationForest | None = None
+        self._model: dict[str, Any] | None = None
         self._buffer: list[np.ndarray] = []   # feature vectors not yet trained
         self._lock = Lock()
         self._model_path = Path(settings.MODEL_DIR) / f"anomaly_detector_{self.user_id}.pkl"
@@ -116,36 +117,40 @@ class AnomalyDetector:
     # ── Internal helpers ───────────────────────────────────────────────────────
 
     def _train(self) -> None:
-        """Fit IsolationForest on *self._buffer*. Must hold *self._lock*."""
+        """Build statistical Z-score mappings based on *self._buffer*. Must hold *self._lock*."""
         X_full = np.vstack(self._buffer)
-        # Drop constant count features (0-5, 14-15). Train only on rhythmic biometrics (6:14).
+        # Focus strictly on the rhythmic biometrics (6:14)
         X = X_full[:, 6:14]
-        model = IsolationForest(
-            n_estimators=N_ESTIMATORS,
-            contamination=CONTAMINATION,
-            random_state=RANDOM_STATE,
-            n_jobs=1,
-        )
-        model.fit(X)
-        self._model = model
+        
+        mean_vec = np.mean(X, axis=0)
+        std_vec = np.std(X, axis=0)
+        
+        # Prevent division by zero for extremely tight clusters
+        std_vec[std_vec < 1e-4] = 1e-4
+        
+        self._model = {"mean": mean_vec, "std": std_vec}
         self._save()
-        logger.info("AnomalyDetector trained on %d samples and saved to %s",
-                    len(self._buffer), self._model_path)
+        logger.info("Z-Score Detector trained on %d samples", len(self._buffer))
 
     def _score(self, fv: np.ndarray) -> dict[str, Any]:
-        """Score a single feature vector. Must hold *self._lock*."""
+        """Score a single feature vector based on statistical standard deviations."""
         assert self._model is not None
-        # Predict using only the rhythmic biometrics (6:14)
+        
         x = fv.reshape(1, -1)[:, 6:14]
-        # sklearn predict: +1 = normal, -1 = anomaly
-        pred = self._model.predict(x)[0]
-        # decision_function: more negative = more anomalous; normalise to [0, 1]
-        raw_score = float(self._model.decision_function(x)[0])
-        # Invert, stretch by 5x so anomalies pop out aggressively, then clip
-        normalised = float(np.clip(-raw_score * 5 + 0.5, 0.0, 1.0))
+        
+        # Calculate how many standard deviations away (Z-Score) the rhythm is
+        z_scores = np.abs((x - self._model["mean"]) / self._model["std"])
+        mean_z = float(np.mean(z_scores))
+        
+        # Exponential curve mapping to percentages:
+        # Z=0 (perfect match) -> 0% anomaly
+        # Z=0.5 -> ~39% anomaly
+        # Z=1.0 -> ~63% anomaly
+        # Z=2.0 -> ~86% anomaly
+        normalised = float(np.clip(1.0 - np.exp(-mean_z / 1.0), 0.0, 1.0))
 
         return {
-            "label": "normal" if pred == 1 else "anomaly",
+            "label": "normal" if normalised < 0.55 else "anomaly",
             "score": round(normalised, 4),
             "model_ready": True,
             "samples_trained_on": len(self._buffer),
