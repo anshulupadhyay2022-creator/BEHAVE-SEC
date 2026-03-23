@@ -15,12 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.schemas import BehavioralDataPayload
 from backend.utils.storage import save_to_csv, save_to_json
-from backend.ml.model import detector
-from backend.db.engine import AsyncSessionLocal
+from backend.ml.model import model_manager
+from backend.db.engine import AsyncSessionLocal, get_db
 from backend.db import repository
-from backend.db.models import User
+from backend.db.models import User, Session
 from backend.api.routes.auth import get_current_user, generate_and_send_otp
 from backend.api.routes.ws import manager as ws_manager
+from backend.core.security.replay import replay_defender
 
 # Shared in-memory store (owned by stats module, imported here)
 from backend.api.routes.stats import behavioral_data_storage
@@ -29,9 +30,9 @@ router = APIRouter()
 
 
 # ── DB dependency ─────────────────────────────────────────────────────────────
-async def get_db() -> AsyncSession:  # type: ignore[return]
-    async with AsyncSessionLocal() as session:
-        yield session
+# async def get_db() -> AsyncSession:  # type: ignore[return]
+#     async with AsyncSessionLocal() as session:
+#         yield session
 
 
 # ── Route ─────────────────────────────────────────────────────────────────────
@@ -44,6 +45,10 @@ async def collect_behavioral_data(
 ) -> Dict[str, Any]:
     """Receive, validate, persist, analyse, and summarise a behavioral data session."""
     try:
+        # 1. Defend against Replay Attacks
+        if replay_defender.is_replay(payload.events):
+            raise HTTPException(status_code=400, detail="Replay Attack Detected: Identical Behavioral Payload")
+
         # Tally events by type
         event_counts: Dict[str, int] = {}
         for event in payload.events:
@@ -77,7 +82,8 @@ async def collect_behavioral_data(
                 hijack_suspected = True
 
         # ── Anomaly detection ────────────────────────────────────────────────
-        anomaly_result = detector.ingest(payload)
+        user_detector = model_manager.get_detector(payload.userId)
+        anomaly_result = user_detector.ingest(payload)
         anomaly_score = float(anomaly_result.get("score", 0.0))
         risk_score = (anomaly_score * 0.7) + (0.3 if hijack_suspected else 0.0)
         risk_score = min(risk_score, 1.0)

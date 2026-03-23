@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intruder Challenge - BEHAVE SEC</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <style>
+        .split-container {
+            display: flex;
+            gap: 2rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+        .challenge-panel {
+            flex: 1;
+            min-width: 300px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .challenge-panel.active {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+        .challenge-panel.locked {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .reference-text {
+            background: #111424;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            user-select: none;
+        }
+        .typing-area {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            color: white;
+            font-family: var(--font-mono);
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            resize: none;
+        }
+        
+        /* Hacker Theme Overrides for Intruder Panel */
+        .hacker-panel.active {
+            border-color: #ff5252;
+            box-shadow: 0 0 20px rgba(255, 82, 82, 0.2);
+        }
+        .hacker-panel .reference-text {
+            color: #ff5252;
+        }
+        
+        .result-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            z-index: 10;
+        }
+        .result-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .result-text {
+            font-size: 3rem;
+            font-weight: bold;
+            font-family: var(--font-mono);
+            text-align: center;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body style="background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-main);">
+
+    <header>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0;">
+            <div class="logo">
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <span style="font-weight: bold; font-size: 1.2rem;">BEHAVE - SEC</span>
+                </a>
+            </div>
+            <span style="color: var(--accent-primary); font-weight: bold;">INTRUDER CHALLENGE</span>
+        </div>
+    </header>
+
+    <div class="container" style="padding: 2rem 0;">
+        <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+            <h1 style="color: white; font-size: 3rem; margin-bottom: 1rem;">Beat The ML.</h1>
+            <p style="color: var(--text-secondary); font-size: 1.2rem;">
+                Step 1: The device owner trains the system.<br>
+                Step 2: Give the keyboard to a friend and tell them to copy you perfectly.
+            </p>
+        </div>
+
+        <div class="split-container">
+            <!-- Phase 1: Owner -->
+            <div id="panel-owner" class="challenge-panel active">
+                <h2 style="color: var(--accent-primary); margin-bottom: 0.5rem;">Phase 1: The Owner</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Type the phrase exactly as shown below.</p>
+                
+                <div class="reference-text">
+                    The quick brown fox jumps over the lazy dog. Cybersecurity relies on human behavior.
+                </div>
+                
+                <textarea id="owner-input" class="typing-area" rows="4" placeholder="Owner, start typing..."></textarea>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="owner-status" style="color: var(--text-secondary);">Waiting for input...</span>
+                    <button type="button" class="btn btn-primary" id="btn-train">Train Profile</button>
+                </div>
+            </div>
+
+            <!-- Phase 2: Intruder -->
+            <div id="panel-intruder" class="challenge-panel hacker-panel locked">
+                <h2 style="color: #ff5252; margin-bottom: 0.5rem;">Phase 2: The Intruder</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Friend, sit down and try to mimic their typing perfectly.</p>
+                
+                <div class="reference-text">
+                    The quick brown fox jumps over the lazy dog. Cybersecurity relies on human behavior.
+                </div>
+                
+                <textarea id="intruder-input" class="typing-area" rows="4" placeholder="Intruder, target acquired..."></textarea>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="intruder-status" style="color: var(--text-secondary);">System Locked.</span>
+                    <button type="button" class="btn btn-secondary" id="btn-hack" style="border-color: #ff5252; color: #ff5252;" disabled>Attempt Hack</button>
+                </div>
+                
+                <!-- Result Screen -->
+                <div id="result-screen" class="result-overlay">
+                    <div id="result-title" class="result-text" style="color: #ff5252;">ACCESS DENIED</div>
+                    <div id="result-score" style="color: white; font-size: 1.5rem; margin: 1rem 0;">Anomaly Match: 98%</div>
+                    <p id="result-desc" style="color: var(--text-secondary); text-align: center; max-width: 80%;">Your typing rhythm didn't match the owner's profile.</p>
+                    <button class="btn btn-secondary" style="margin-top: 2rem;" onclick="location.reload()">Reset Challenge</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/challenge.js"></script>
+</body>
+</html>

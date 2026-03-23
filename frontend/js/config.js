@@ -9,7 +9,7 @@
  * NOTE: Before your final deployment, change the URL below to match your actual deployed Render backend URL.
  */
 
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
 
 // CHANGE THIS string to your live Render backend URL after deploying it!
 const RENDER_BACKEND_URL = 'https://behave-sec.onrender.com';

@@ -40,11 +40,12 @@ RANDOM_STATE:  int = 42
 class AnomalyDetector:
     """Thread-safe, persistent wrapper around IsolationForest."""
 
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         self._model: IsolationForest | None = None
         self._buffer: list[np.ndarray] = []   # feature vectors not yet trained
         self._lock = Lock()
-        self._model_path = Path(settings.MODEL_DIR) / "anomaly_detector.pkl"
+        self._model_path = Path(settings.MODEL_DIR) / f"anomaly_detector_{self.user_id}.pkl"
 
         # Try to restore a previously saved model
         self._load()
@@ -163,6 +164,18 @@ class AnomalyDetector:
                 self._model = None
 
 
+class ModelManager:
+    """Manages active detectors for multiple users."""
+    def __init__(self) -> None:
+        self._detectors: dict[str, AnomalyDetector] = {}
+        self._lock = Lock()
+        
+    def get_detector(self, user_id: str) -> AnomalyDetector:
+        with self._lock:
+            if user_id not in self._detectors:
+                self._detectors[user_id] = AnomalyDetector(user_id=user_id)
+            return self._detectors[user_id]
+
 # ── Singleton ─────────────────────────────────────────────────────────────────
-# One shared instance for the whole server process.
-detector = AnomalyDetector()
+# Shared manager instance for the whole server process.
+model_manager = ModelManager()

@@ -26,3 +26,8 @@ AsyncSessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(
     expire_on_commit=False,
     class_=AsyncSession,
 )
+# ── Dependency provider for FastAPI ──────────────────────────────────────────
+async def get_db() -> AsyncSession:  # type: ignore[return]
+    """Dependency provider for FastAPI endpoints"""
+    async with AsyncSessionLocal() as session:
+        yield session

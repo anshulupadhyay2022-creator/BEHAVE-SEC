@@ -55,3 +55,20 @@ async def get_statistics(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
             for r in rows
         ],
     }
+
+
+@router.get("/fingerprint")
+async def get_fingerprint(user_id: str, db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
+    """Return raw event data for charting the user's behavioral fingerprint."""
+    from sqlalchemy import select
+    from backend.db.models import Session
+    query = select(Session).where(Session.user_id == user_id).order_by(Session.collected_at.desc()).limit(15)
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+    
+    all_events = []
+    for sess in sessions:
+        if sess.events:
+            all_events.extend(sess.events)
+            
+    return {"status": "ok", "userId": user_id, "events": all_events}

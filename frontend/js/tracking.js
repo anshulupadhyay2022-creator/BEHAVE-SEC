@@ -29,7 +29,6 @@ class BehaviorTracker {
      */
     initListeners() {
         // Keyboard events
-        // Keyboard events
         document.addEventListener('keydown', (e) => {
             if (!e.repeat) {
                 this.keyPressMap.set(e.code, Date.now());
@@ -74,6 +73,49 @@ class BehaviorTracker {
                 lastScroll = now;
             }
         });
+
+        // --- Mobile Sensors ---
+        
+        // Touch events
+        document.addEventListener('touchstart', (e) => this.logEvent('touchstart', e, null), {passive: true});
+        document.addEventListener('touchend', (e) => this.logEvent('touchend', e, null), {passive: true});
+        
+        let lastTouchMove = 0;
+        document.addEventListener('touchmove', (e) => {
+            const now = Date.now();
+            if (now - lastTouchMove > 100) {
+                this.logEvent('touchmove', e, null);
+                lastTouchMove = now;
+            }
+        }, {passive: true});
+        
+        // Gyroscope
+        let lastOrientation = 0;
+        window.addEventListener('deviceorientation', (e) => {
+            const now = Date.now();
+            if (now - lastOrientation > 500) { // 2 times a second
+                this.logEvent('deviceorientation', e, null, {
+                    alpha: e.alpha,
+                    beta: e.beta,
+                    gamma: e.gamma
+                });
+                lastOrientation = now;
+            }
+        });
+        
+        // Accelerometer
+        let lastMotion = 0;
+        window.addEventListener('devicemotion', (e) => {
+            const now = Date.now();
+            if (now - lastMotion > 500 && e.acceleration) {
+                this.logEvent('devicemotion', e, null, {
+                    accelX: e.acceleration.x,
+                    accelY: e.acceleration.y,
+                    accelZ: e.acceleration.z
+                });
+                lastMotion = now;
+            }
+        });
     }
 
     /**
@@ -107,6 +149,14 @@ class BehaviorTracker {
             if (type === 'scroll') {
                 eventData.scrollY = window.scrollY;
                 eventData.scrollX = window.scrollX;
+            }
+            
+            // Add touch specific properties
+            if (type.startsWith('touch') && event.touches && event.touches.length > 0) {
+                const touch = event.touches[0];
+                eventData.mouseX = touch.clientX;
+                eventData.mouseY = touch.clientY;
+                if (touch.force !== undefined) eventData.pressure = touch.force;
             }
 
             if (event.target && event.target !== document) {

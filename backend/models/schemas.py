@@ -34,11 +34,23 @@ class BehavioralEvent(BaseModel):
     # Scroll fields
     scrollX: Optional[int] = Field(None, description="Scroll X position")
     scrollY: Optional[int] = Field(None, description="Scroll Y position")
+    
+    # Mobile Sensor fields
+    pressure: Optional[float] = Field(None, description="Touch pressure (0.0 to 1.0)")
+    alpha: Optional[float] = Field(None, description="Gyroscope Z axis rotation")
+    beta: Optional[float] = Field(None, description="Gyroscope X axis rotation")
+    gamma: Optional[float] = Field(None, description="Gyroscope Y axis rotation")
+    accelX: Optional[float] = Field(None, description="Accelerometer X")
+    accelY: Optional[float] = Field(None, description="Accelerometer Y")
+    accelZ: Optional[float] = Field(None, description="Accelerometer Z")
 
     @field_validator("eventType")
     @classmethod
     def validate_event_type(cls, v: str) -> str:
-        allowed_types = {"keydown", "keyup", "mousemove", "click", "scroll"}
+        allowed_types = {
+            "keydown", "keyup", "mousemove", "click", "scroll",
+            "touchstart", "touchend", "touchmove", "deviceorientation", "devicemotion"
+        }
         if v not in allowed_types:
             raise ValueError(f"Event type must be one of: {', '.join(allowed_types)}")
         return v

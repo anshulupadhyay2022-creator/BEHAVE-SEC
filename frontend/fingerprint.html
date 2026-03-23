@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Behavioral Fingerprint - BEHAVE SEC</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-main);">
+
+    <header>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0;">
+            <div class="logo">
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <span style="font-weight: bold; font-size: 1.2rem;">BEHAVE - SEC</span>
+                </a>
+            </div>
+            <span style="color: var(--text-secondary);">Fingerprint Visualizer</span>
+        </div>
+    </header>
+
+    <div class="container" style="padding: 2rem 0; text-align: center;">
+        <h1 style="color: var(--accent-primary); margin-bottom: 1rem;">Your Behavioral Fingerprint</h1>
+        <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto 2rem;">
+            This scatter plot represents your unique typing style. The X-axis is the <strong>Hold Time</strong> (how long you hold a key down), and the Y-axis is the <strong>Flight Time</strong> (how long it takes to move to the next key). Everyone's cluster is uniquely shaped!
+        </p>
+
+        <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+            <input type="text" id="user-id-input" placeholder="Enter User ID (or use guest_demo_user_xyz)" style="padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: white; width: 300px;">
+            <button id="fetch-btn" class="btn btn-primary">Visualize Data</button>
+        </div>
+
+        <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); height: 500px; width: 100%; max-width: 900px; margin: 0 auto;">
+            <canvas id="fingerprintChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+
+        document.getElementById('fetch-btn').addEventListener('click', async () => {
+            const userId = document.getElementById('user-id-input').value.trim();
+            if (!userId) return alert('Please enter a User ID');
+
+            try {
+                const res = await fetch(`http://localhost:8000/fingerprint?user_id=${userId}`);
+                const data = await res.json();
+                
+                if (!data.events || data.events.length === 0) {
+                    alert('No data found for this user.');
+                    return;
+                }
+
+                plotData(data.events);
+            } catch (err) {
+                console.error(err);
+                alert('Error fetching data.');
+            }
+        });
+
+        function plotData(events) {
+            const points = [];
+            const keydowns = {}; // map of keyCode -> keydown timestamp
+            let lastKeyupTime = null;
+
+            for (const ev of events) {
+                if (ev.eventType === 'keydown' || ev.eventType === 'touchstart') {
+                    const keyId = ev.keyCode || "touch";
+                    keydowns[keyId] = ev; // Store the entire event so we can write to it
+                    
+                    if (lastKeyupTime !== null) {
+                        // The true Flight Time: time between releasing previous key and pressing this key
+                        const currentFlightTime = ev.timestamp - lastKeyupTime;
+                        ev._flightTime = currentFlightTime;
+                    }
+                } else if (ev.eventType === 'keyup' || ev.eventType === 'touchend') {
+                    const keyId = ev.keyCode || "touch";
+                    const downEvent = keydowns[keyId];
+                    
+                    if (downEvent) {
+                        const holdTime = ev.timestamp - downEvent.timestamp;
+                        const actualFlightTime = downEvent._flightTime;
+                        
+                        // Accept reasonable human physical boundaries to filter out outliers
+                        if (holdTime > 10 && holdTime < 1000 && actualFlightTime !== undefined && actualFlightTime > 0 && actualFlightTime < 2000) {
+                            points.push({ x: holdTime, y: actualFlightTime });
+                        }
+                        
+                        delete keydowns[keyId];
+                    }
+                    lastKeyupTime = ev.timestamp;
+                }
+            }
+
+            const ctx = document.getElementById('fingerprintChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Keystroke Dynamics',
+                        data: points,
+                        backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                        borderColor: '#00d4ff',
+                        borderWidth: 1,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Keep Hold Time (ms)', color: '#8b8e98' },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#8b8e98' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Flight Time (ms)', color: '#8b8e98' },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#8b8e98' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

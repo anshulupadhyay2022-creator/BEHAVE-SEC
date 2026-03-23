@@ -1,5 +1,5 @@
 """
-backend/core/security.py
+backend/core/security/__init__.py
 JWT utilities and password hashing.
 """
 from datetime import datetime, timedelta, timezone
