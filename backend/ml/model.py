@@ -117,7 +117,9 @@ class AnomalyDetector:
 
     def _train(self) -> None:
         """Fit IsolationForest on *self._buffer*. Must hold *self._lock*."""
-        X = np.vstack(self._buffer)
+        X_full = np.vstack(self._buffer)
+        # Drop constant count features (0-5, 14-15). Train only on rhythmic biometrics (6:14).
+        X = X_full[:, 6:14]
         model = IsolationForest(
             n_estimators=N_ESTIMATORS,
             contamination=CONTAMINATION,
@@ -133,7 +135,8 @@ class AnomalyDetector:
     def _score(self, fv: np.ndarray) -> dict[str, Any]:
         """Score a single feature vector. Must hold *self._lock*."""
         assert self._model is not None
-        x = fv.reshape(1, -1)
+        # Predict using only the rhythmic biometrics (6:14)
+        x = fv.reshape(1, -1)[:, 6:14]
         # sklearn predict: +1 = normal, -1 = anomaly
         pred = self._model.predict(x)[0]
         # decision_function: more negative = more anomalous; normalise to [0, 1]
