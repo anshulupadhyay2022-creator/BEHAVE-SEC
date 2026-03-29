@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let ownerStartTime = 0;
     let intruderStartTime = 0;
 
+    // Multi-session enrollment state
+    const REQUIRED_ROUNDS = 3;
+    let currentRound = 1;
+    let allRoundEvents = [];  // Array of arrays: each round's raw events
+
     // Phase 1: Owner Input
     inputOwner.addEventListener('keydown', (e) => {
         if (!e.repeat) {
@@ -69,6 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, {passive: true});
 
+    // Update UI status with round information
+    function updateRoundStatus() {
+        statusOwner.textContent = `Round ${currentRound} of ${REQUIRED_ROUNDS} — Type the phrase and click Train.`;
+        statusOwner.style.color = "var(--text-secondary)";
+        btnTrain.textContent = `Train Round ${currentRound}/${REQUIRED_ROUNDS}`;
+    }
+    updateRoundStatus();
+
     btnTrain.addEventListener('click', async () => {
         if (ownerEvents.length < 20) {
             statusOwner.textContent = "Type more of the phrase!";
@@ -76,34 +89,49 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Save this round's real events
+        allRoundEvents.push({
+            events: [...ownerEvents],
+            startTime: ownerStartTime
+        });
+
+        if (currentRound < REQUIRED_ROUNDS) {
+            // More rounds needed - reset input for next round
+            currentRound++;
+            ownerEvents = [];
+            ownerStartTime = 0;
+            inputOwner.value = '';
+            inputOwner.focus();
+            updateRoundStatus();
+            statusOwner.textContent = `Round ${currentRound - 1} captured! Now type it again (Round ${currentRound}/${REQUIRED_ROUNDS}).`;
+            statusOwner.style.color = "#4CAF50";
+            return;
+        }
+
+        // All rounds collected — now train the model
         btnTrain.disabled = true;
-        statusOwner.textContent = "Training defensive ML model...";
+        statusOwner.textContent = "All rounds captured! Training ML model with real + synthetic data...";
         statusOwner.style.color = "var(--text-secondary)";
 
-        // Train with 50 diverse sessions to build a robust SVM boundary
-        // Grid-search found that wider variance (0.90x-1.10x) with 50 samples → 99.25% accuracy
         let successCount = 0;
-        const TRAIN_SESSIONS = 50;
-        for (let i = 0; i < TRAIN_SESSIONS; i++) {
-            // Simulate natural human typing speed variance per session
-            const speedFactor = 0.90 + (Math.random() * 0.20); // 0.90x to 1.10x
-            const jitterRange = 10; // ±10ms per-keystroke jitter
+        let totalSessions = 0;
+
+        // Step 1: Send each real round as-is (3 real sessions)
+        for (let r = 0; r < allRoundEvents.length; r++) {
+            const roundData = allRoundEvents[r];
             const payload = {
                 userId: CHALLENGE_USER_ID,
-                sessionId: "train_sess_" + i + "_" + Date.now(),
-                events: ownerEvents.map(ev => ({
-                    ...ev,
-                    timestamp: ownerStartTime + Math.round((ev.timestamp - ownerStartTime) * speedFactor + (Math.random() * jitterRange * 2 - jitterRange)),
-                    relativeTime: Math.round(ev.relativeTime * speedFactor + (Math.random() * jitterRange * 2 - jitterRange))
-                })),
+                sessionId: "real_round_" + r + "_" + Date.now(),
+                events: roundData.events,
                 metadata: {
                     userAgent: navigator.userAgent,
                     screenWidth: window.innerWidth,
                     screenHeight: window.innerHeight,
-                    sessionDuration: Date.now() - ownerStartTime
+                    sessionDuration: roundData.events.length > 0 
+                        ? roundData.events[roundData.events.length - 1].timestamp - roundData.startTime 
+                        : 0
                 }
             };
-
             try {
                 const res = await fetch('http://localhost:8000/analyze', {
                     method: 'POST',
@@ -111,13 +139,55 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) successCount++;
-            } catch (err) {
-                console.error(err);
+                totalSessions++;
+            } catch (err) { console.error(err); }
+        }
+
+        // Step 2: Generate synthetic variants from EACH real round
+        // 16 synthetic variants per round * 3 rounds = 48 synthetic + 3 real = 51 total
+        const SYNTHETIC_PER_ROUND = 16;
+        for (let r = 0; r < allRoundEvents.length; r++) {
+            const roundData = allRoundEvents[r];
+            const roundStart = roundData.startTime;
+            const roundEvents = roundData.events;
+
+            for (let i = 0; i < SYNTHETIC_PER_ROUND; i++) {
+                // Realistic human speed variance per synthetic session
+                const speedFactor = 0.90 + (Math.random() * 0.20); // 0.90x to 1.10x
+                const jitterRange = 10; // +/-10ms per-keystroke jitter
+                
+                const payload = {
+                    userId: CHALLENGE_USER_ID,
+                    sessionId: "synth_r" + r + "_s" + i + "_" + Date.now(),
+                    events: roundEvents.map(ev => ({
+                        ...ev,
+                        timestamp: roundStart + Math.round((ev.timestamp - roundStart) * speedFactor + (Math.random() * jitterRange * 2 - jitterRange)),
+                        relativeTime: Math.round(ev.relativeTime * speedFactor + (Math.random() * jitterRange * 2 - jitterRange))
+                    })),
+                    metadata: {
+                        userAgent: navigator.userAgent,
+                        screenWidth: window.innerWidth,
+                        screenHeight: window.innerHeight,
+                        sessionDuration: roundEvents.length > 0 
+                            ? roundEvents[roundEvents.length - 1].timestamp - roundStart 
+                            : 0
+                    }
+                };
+
+                try {
+                    const res = await fetch('http://localhost:8000/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) successCount++;
+                    totalSessions++;
+                } catch (err) { console.error(err); }
             }
         }
 
-        if (successCount >= TRAIN_SESSIONS) {
-            statusOwner.textContent = "Profile Locked. Secure.";
+        if (successCount >= totalSessions * 0.9) {
+            statusOwner.textContent = `Profile Locked. Trained on ${successCount} sessions (${REQUIRED_ROUNDS} real + ${successCount - REQUIRED_ROUNDS} synthetic).`;
             statusOwner.style.color = "#4CAF50";
             
             // Switch UI to Hacker

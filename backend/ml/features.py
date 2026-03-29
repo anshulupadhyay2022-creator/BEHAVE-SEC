@@ -2,23 +2,35 @@
 backend/ml/features.py
 Extract a fixed-length numeric feature vector from a list of BehavioralEvents.
 
-Features (16 total):
+Features (28 total):
   0  total_events
   1  keydown_count
   2  keyup_count
   3  mousemove_count
   4  click_count
   5  scroll_count
-  6  avg_key_hold_ms       – mean dwell time (keydown→keyup for same key)
+  6  avg_key_hold_ms
   7  std_key_hold_ms
-  8  avg_inter_key_ms      – mean flight time between consecutive keydowns
+  8  avg_inter_key_ms
   9  std_inter_key_ms
-  10 avg_mouse_speed       – mean pixel/ms between successive mousemove events
+  10 avg_mouse_speed
   11 std_mouse_speed
   12 session_duration_ms
   13 events_per_second
-  14 key_event_ratio        – (keydown+keyup) / total
-  15 mouse_event_ratio      – (mousemove+click+scroll) / total
+  14 key_event_ratio
+  15 mouse_event_ratio
+  16 avg_digraph_flight_ms
+  17 std_digraph_flight_ms
+  18 avg_digraph_duration_ms
+  19 std_digraph_duration_ms
+  20 avg_hold_flight_ratio
+  21 std_hold_flight_ratio
+  22 avg_mouse_accel        -- mean acceleration (change in speed)
+  23 std_mouse_accel
+  24 path_directness_ratio  -- straight-line / actual distance between clicks
+  25 avg_click_interval_ms  -- mean time between consecutive clicks
+  26 std_click_interval_ms
+  27 click_precision        -- mean distance of clicks from movement centroid
 """
 
 from __future__ import annotations
@@ -31,9 +43,9 @@ import numpy as np
 from backend.models.schemas import BehavioralEvent
 
 # Number of features produced by extract_features()
-N_FEATURES = 16
+N_FEATURES = 28
 
-# Names – useful for diagnostics / dashboards
+# Names -- useful for diagnostics / dashboards
 FEATURE_NAMES = [
     "total_events",
     "keydown_count",
@@ -51,6 +63,18 @@ FEATURE_NAMES = [
     "events_per_second",
     "key_event_ratio",
     "mouse_event_ratio",
+    "avg_digraph_flight_ms",
+    "std_digraph_flight_ms",
+    "avg_digraph_duration_ms",
+    "std_digraph_duration_ms",
+    "avg_hold_flight_ratio",
+    "std_hold_flight_ratio",
+    "avg_mouse_accel",
+    "std_mouse_accel",
+    "path_directness_ratio",
+    "avg_click_interval_ms",
+    "std_click_interval_ms",
+    "click_precision",
 ]
 
 
@@ -70,7 +94,7 @@ def extract_features(events: List[BehavioralEvent]) -> np.ndarray:
     if n == 0:
         return np.zeros(N_FEATURES, dtype=np.float64)
 
-    # ── 1. Basic counts ──────────────────────────────────────────────────────
+    # -- 1. Basic counts ---
     counts: dict[str, int] = {}
     for e in events:
         counts[e.eventType] = counts.get(e.eventType, 0) + 1
@@ -81,9 +105,8 @@ def extract_features(events: List[BehavioralEvent]) -> np.ndarray:
     cl = counts.get("click", 0)
     sc = counts.get("scroll", 0)
 
-    # ── 2. Key hold times (dwell) ────────────────────────────────────────────
-    # Match each keydown with the nearest subsequent keyup of the same key
-    keydown_map: dict[str, int] = {}  # key → timestamp of last keydown
+    # -- 2. Key hold times (dwell) ---
+    keydown_map: dict[str, int] = {}
     hold_times: list[float] = []
 
     for e in events:
@@ -91,13 +114,13 @@ def extract_features(events: List[BehavioralEvent]) -> np.ndarray:
             keydown_map[e.key] = e.timestamp
         elif e.eventType == "keyup" and e.key and e.key in keydown_map:
             hold = e.timestamp - keydown_map.pop(e.key)
-            if 0 < hold < 5_000:   # ignore implausible values
+            if 0 < hold < 5_000:
                 hold_times.append(float(hold))
 
     avg_hold = float(np.mean(hold_times)) if hold_times else 0.0
     std_hold = _safe_std(hold_times)
 
-    # ── 3. Inter-key intervals (flight time between consecutive keydowns) ─────
+    # -- 3. Inter-key intervals (flight time between consecutive keydowns) ---
     kd_timestamps = [e.timestamp for e in events if e.eventType == "keydown"]
     inter_key: list[float] = []
     for i in range(1, len(kd_timestamps)):
@@ -108,7 +131,7 @@ def extract_features(events: List[BehavioralEvent]) -> np.ndarray:
     avg_iki = float(np.mean(inter_key)) if inter_key else 0.0
     std_iki = _safe_std(inter_key)
 
-    # ── 4. Mouse speed (pixels / ms) ─────────────────────────────────────────
+    # -- 4. Mouse speed (pixels / ms) ---
     mouse_events = [
         e for e in events
         if e.eventType == "mousemove"
@@ -126,17 +149,139 @@ def extract_features(events: List[BehavioralEvent]) -> np.ndarray:
     avg_speed = float(np.mean(speeds)) if speeds else 0.0
     std_speed = _safe_std(speeds)
 
-    # ── 5. Session-level timing ───────────────────────────────────────────────
+    # -- 5. Session-level timing ---
     ts_list = [e.timestamp for e in events]
     duration_ms = float(max(ts_list) - min(ts_list)) if len(ts_list) >= 2 else 0.0
-    duration_s  = duration_ms / 1000.0 if duration_ms > 0 else 1.0  # avoid /0
+    duration_s  = duration_ms / 1000.0 if duration_ms > 0 else 1.0
     eps = n / duration_s
 
-    # ── 6. Ratios ─────────────────────────────────────────────────────────────
+    # -- 6. Ratios ---
     key_ratio   = (kd + ku) / n
     mouse_ratio = (mm + cl + sc) / n
 
-    # ── Assemble ──────────────────────────────────────────────────────────────
+    # -- 7. Digraph features (key-pair transition timing) ---
+    # These capture the unique muscle-memory transitions between key pairs.
+    # They are the #1 most discriminative feature in keystroke dynamics research.
+
+    key_events_ordered = [
+        e for e in events if e.eventType in ("keydown", "keyup") and e.key
+    ]
+
+    digraph_flights: list[float] = []    # keyup(N) -> keydown(N+1)
+    digraph_durations: list[float] = []  # keydown(N) -> keyup(N+1) spanning two chars
+    hold_flight_ratios: list[float] = []
+
+    prev_keyup_ts: float | None = None
+    prev_hold_time: float | None = None
+    last_kd_ts: dict[str, int] = {}
+
+    for e in key_events_ordered:
+        if e.eventType == "keydown" and e.key:
+            last_kd_ts[e.key] = e.timestamp
+            # Digraph flight: time from previous keyup to this keydown
+            if prev_keyup_ts is not None:
+                flight = e.timestamp - prev_keyup_ts
+                if 0 < flight < 5_000:
+                    digraph_flights.append(float(flight))
+                    # Hold-to-flight ratio
+                    if prev_hold_time is not None and flight > 0:
+                        ratio = prev_hold_time / flight
+                        if 0 < ratio < 100:
+                            hold_flight_ratios.append(ratio)
+
+        elif e.eventType == "keyup" and e.key:
+            prev_keyup_ts = e.timestamp
+            if e.key in last_kd_ts:
+                hold = e.timestamp - last_kd_ts[e.key]
+                if 0 < hold < 5_000:
+                    prev_hold_time = float(hold)
+                else:
+                    prev_hold_time = None
+
+    # Digraph duration: keydown(N) -> keyup(N+1) for consecutive keydown pairs
+    kd_events = [e for e in events if e.eventType == "keydown" and e.key]
+    ku_events = [e for e in events if e.eventType == "keyup" and e.key]
+    keyup_lookup: dict[str, list[int]] = {}
+    for e in ku_events:
+        if e.key:
+            keyup_lookup.setdefault(e.key, []).append(e.timestamp)
+
+    for i in range(len(kd_events) - 1):
+        kd_curr = kd_events[i]
+        kd_next = kd_events[i + 1]
+        if kd_next.key and kd_next.key in keyup_lookup and keyup_lookup[kd_next.key]:
+            for ku_ts in keyup_lookup[kd_next.key]:
+                if ku_ts >= kd_next.timestamp:
+                    dur = ku_ts - kd_curr.timestamp
+                    if 0 < dur < 10_000:
+                        digraph_durations.append(float(dur))
+                    break
+
+    avg_di_flight = float(np.mean(digraph_flights)) if digraph_flights else 0.0
+    std_di_flight = _safe_std(digraph_flights)
+    avg_di_duration = float(np.mean(digraph_durations)) if digraph_durations else 0.0
+    std_di_duration = _safe_std(digraph_durations)
+    avg_hf_ratio = float(np.mean(hold_flight_ratios)) if hold_flight_ratios else 0.0
+    std_hf_ratio = _safe_std(hold_flight_ratios)
+
+    # -- 8. Mouse acceleration (change in speed between consecutive moves) ---
+    accelerations: list[float] = []
+    for i in range(1, len(speeds)):
+        accel = speeds[i] - speeds[i - 1]
+        accelerations.append(accel)
+
+    avg_accel = float(np.mean(accelerations)) if accelerations else 0.0
+    std_accel = _safe_std(accelerations)
+
+    # -- 9. Path directness between consecutive clicks ---
+    click_events = [
+        e for e in events
+        if e.eventType == "click"
+        and e.clientX is not None and e.clientY is not None
+    ]
+    directness_ratios: list[float] = []
+    click_intervals: list[float] = []
+
+    for i in range(1, len(click_events)):
+        prev_c, curr_c = click_events[i - 1], click_events[i]
+        # Straight-line distance between clicks
+        straight = math.hypot(curr_c.clientX - prev_c.clientX, curr_c.clientY - prev_c.clientY)  # type: ignore[operator]
+        # Actual path distance (sum of mousemove segments between these clicks)
+        path_moves = [
+            e for e in mouse_events
+            if prev_c.timestamp <= e.timestamp <= curr_c.timestamp
+        ]
+        actual_dist = 0.0
+        for j in range(1, len(path_moves)):
+            p, c = path_moves[j - 1], path_moves[j]
+            actual_dist += math.hypot(c.clientX - p.clientX, c.clientY - p.clientY)  # type: ignore[operator]
+
+        if actual_dist > 0:
+            directness_ratios.append(straight / actual_dist)
+
+        # Click interval
+        dt = curr_c.timestamp - prev_c.timestamp
+        if 0 < dt < 30_000:
+            click_intervals.append(float(dt))
+
+    path_direct = float(np.mean(directness_ratios)) if directness_ratios else 0.0
+    avg_click_int = float(np.mean(click_intervals)) if click_intervals else 0.0
+    std_click_int = _safe_std(click_intervals)
+
+    # -- 10. Click precision (mean distance of clicks from click centroid) ---
+    if len(click_events) >= 2:
+        cx = float(np.mean([e.clientX for e in click_events if e.clientX is not None]))
+        cy = float(np.mean([e.clientY for e in click_events if e.clientY is not None]))
+        click_dists = [
+            math.hypot(e.clientX - cx, e.clientY - cy)  # type: ignore[operator]
+            for e in click_events
+            if e.clientX is not None and e.clientY is not None
+        ]
+        click_prec = float(np.mean(click_dists)) if click_dists else 0.0
+    else:
+        click_prec = 0.0
+
+    # -- Assemble ---
     return np.array([
         n,
         kd,
@@ -154,4 +299,16 @@ def extract_features(events: List[BehavioralEvent]) -> np.ndarray:
         eps,
         key_ratio,
         mouse_ratio,
+        avg_di_flight,
+        std_di_flight,
+        avg_di_duration,
+        std_di_duration,
+        avg_hf_ratio,
+        std_hf_ratio,
+        avg_accel,
+        std_accel,
+        path_direct,
+        avg_click_int,
+        std_click_int,
+        click_prec,
     ], dtype=np.float64)

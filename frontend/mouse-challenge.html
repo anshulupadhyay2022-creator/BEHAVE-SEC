@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouse CAPTCHA - BEHAVE SEC</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #050510;
+            color: #e0e0e0;
+            font-family: var(--font-main, 'Inter', sans-serif);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ── Header ── */
+        .mc-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(5, 5, 16, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+        }
+        .mc-header .logo { font-weight: bold; font-size: 1.1rem; color: #fff; text-decoration: none; }
+        .mc-header .badge {
+            background: linear-gradient(135deg, #00d4ff22, #7c3aed22);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #00d4ff;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        /* ── Arena ── */
+        #arena {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+            background: radial-gradient(ellipse at center, #0a0a20 0%, #050510 100%);
+        }
+        #arena::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        /* ── Target ── */
+        .target {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #00d4ff 0%, #0066ff 60%, transparent 70%);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.6), 0 0 60px rgba(0, 212, 255, 0.3), inset 0 0 15px rgba(255,255,255,0.2);
+            transform: translate(-50%, -50%) scale(0);
+            animation: target-spawn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            pointer-events: all;
+            cursor: pointer;
+            transition: box-shadow 0.15s;
+        }
+        .target:hover {
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.8), 0 0 80px rgba(0, 212, 255, 0.4), inset 0 0 20px rgba(255,255,255,0.3);
+        }
+        .target::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 8px; height: 8px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .target.hit {
+            animation: target-hit 0.3s ease-out forwards;
+        }
+        .target.intruder-target {
+            background: radial-gradient(circle, #ff5252 0%, #cc0000 60%, transparent 70%);
+            box-shadow: 0 0 30px rgba(255, 82, 82, 0.6), 0 0 60px rgba(255, 82, 82, 0.3), inset 0 0 15px rgba(255,255,255,0.2);
+        }
+        .target.intruder-target:hover {
+            box-shadow: 0 0 40px rgba(255, 82, 82, 0.8), 0 0 80px rgba(255, 82, 82, 0.4), inset 0 0 20px rgba(255,255,255,0.3);
+        }
+
+        @keyframes target-spawn {
+            from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        @keyframes target-hit {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.5; }
+            100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        }
+
+        /* ── Click ripple ── */
+        .click-ripple {
+            position: absolute;
+            width: 20px; height: 20px;
+            border: 2px solid rgba(0, 212, 255, 0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            animation: ripple-expand 0.5s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes ripple-expand {
+            to { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+        }
+
+        /* ── HUD ── */
+        .hud {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            background: rgba(5, 5, 16, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 212, 255, 0.15);
+            border-radius: 16px;
+            padding: 1rem 2.5rem;
+        }
+        .hud-item {
+            text-align: center;
+        }
+        .hud-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 0.3rem;
+        }
+        .hud-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+        .hud-value.red { color: #ff5252; }
+
+        /* ── Phase labels ── */
+        .phase-label {
+            position: fixed;
+            top: 5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(0, 212, 255, 0.7);
+            text-align: center;
+        }
+        .phase-label.intruder { color: rgba(255, 82, 82, 0.7); }
+
+        /* ── Intro / Result Overlays ── */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(5, 5, 16, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            transition: opacity 0.5s;
+        }
+        .overlay.hidden { opacity: 0; pointer-events: none; }
+        .overlay h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .overlay p {
+            color: rgba(255,255,255,0.6);
+            font-size: 1.1rem;
+            max-width: 500px;
+            text-align: center;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+        .btn-glow {
+            padding: 0.8rem 2.5rem;
+            border: 1px solid rgba(0, 212, 255, 0.4);
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-glow:hover {
+            background: rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+        .btn-glow.red {
+            border-color: rgba(255, 82, 82, 0.4);
+            background: rgba(255, 82, 82, 0.1);
+            color: #ff5252;
+        }
+        .btn-glow.red:hover {
+            background: rgba(255, 82, 82, 0.2);
+            box-shadow: 0 0 30px rgba(255, 82, 82, 0.3);
+        }
+
+        /* ── Result ── */
+        .result-score-big {
+            font-family: 'Orbitron', monospace;
+            font-size: 5rem;
+            font-weight: 900;
+        }
+        .result-score-big.pass { color: #4CAF50; }
+        .result-score-big.fail { color: #ff5252; }
+
+        /* ── Trail effect ── */
+        .mouse-trail {
+            position: absolute;
+            width: 4px; height: 4px;
+            background: rgba(0, 212, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: trail-fade 0.5s ease-out forwards;
+        }
+        @keyframes trail-fade {
+            to { opacity: 0; transform: scale(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="mc-header">
+        <a href="index.html" class="logo">BEHAVE - SEC</a>
+        <span class="badge">MOUSE CAPTCHA</span>
+    </div>
+
+    <!-- Arena (the dark playground) -->
+    <div id="arena"></div>
+
+    <!-- Phase Label -->
+    <div id="phase-label" class="phase-label" style="display:none;"></div>
+
+    <!-- HUD -->
+    <div id="hud" class="hud" style="display:none;">
+        <div class="hud-item">
+            <div class="hud-label">Targets</div>
+            <div id="hud-targets" class="hud-value">0 / 15</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">Avg React</div>
+            <div id="hud-react" class="hud-value">-- ms</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">Phase</div>
+            <div id="hud-phase" class="hud-value">TRAIN</div>
+        </div>
+    </div>
+
+    <!-- Intro Overlay -->
+    <div id="intro-overlay" class="overlay">
+        <h1>Mouse CAPTCHA</h1>
+        <p>
+            Click the glowing targets as they appear.<br>
+            Your mouse movements, reaction time, and click patterns create a unique behavioral fingerprint.<br>
+            <strong>15 targets</strong> to train your profile.
+        </p>
+        <button id="btn-start-train" class="btn-glow">BEGIN TRAINING</button>
+    </div>
+
+    <!-- Transition Overlay (Owner done -> Intruder start) -->
+    <div id="transition-overlay" class="overlay hidden">
+        <h1 style="-webkit-text-fill-color: #4CAF50;">PROFILE LOCKED</h1>
+        <p>
+            Your behavioral fingerprint has been captured.<br>
+            Now hand the mouse to someone else. Can they replicate your motor patterns?
+        </p>
+        <button id="btn-start-hack" class="btn-glow red">START INTRUDER TEST</button>
+    </div>
+
+    <!-- Result Overlay -->
+    <div id="result-overlay" class="overlay hidden">
+        <div id="result-title" class="result-score-big fail">ACCESS DENIED</div>
+        <div id="result-pct" style="font-family: 'Orbitron', monospace; font-size: 1.5rem; color: white; margin: 1rem 0;">Anomaly: 87%</div>
+        <p id="result-desc">The intruder's mouse behavior didn't match the owner's motor patterns.</p>
+        <button class="btn-glow" onclick="location.reload()">RESET CHALLENGE</button>
+    </div>
+
+    <script src="js/mouse-challenge.js"></script>
+</body>
+</html>

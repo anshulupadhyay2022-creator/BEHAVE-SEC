@@ -118,25 +118,30 @@ class AnomalyDetector:
     def _train(self) -> None:
         """Fit One-Class SVM (IEEE Eq.1) on *self._buffer*. Must hold *self._lock*."""
         X_full = np.vstack(self._buffer)
-        # Use ONLY the 4 pure rhythmic biometric features:
+        # Use 10 biometric features (monograph + digraph):
         #   6: avg_key_hold_ms, 7: std_key_hold_ms
         #   8: avg_inter_key_ms, 9: std_inter_key_ms
-        X = X_full[:, 6:10]
+        #   10-11: mouse speed
+        #   12-13: session timing
+        #   14-15: ratios
+        #   16-21: digraph features
+        #   22-27: mouse acceleration, path directness, click intervals, precision
+        X = X_full[:, 6:28]
         
-        # Grid-search optimal: nu=0.01 gives tightest boundary → 99.25% accuracy
+        # Grid-search optimal: nu=0.01 gives tightest boundary
         model = OneClassSVM(kernel="rbf", nu=0.01, gamma="scale")
         model.fit(X)
         
         self._model = model
         self._save()
-        logger.info("One-Class SVM trained on %d samples (4 rhythmic features)", len(self._buffer))
+        logger.info("One-Class SVM trained on %d samples (22 biometric features)", len(self._buffer))
 
     def _score(self, fv: np.ndarray) -> dict[str, Any]:
         """Score a single feature vector based on SVM hyperplane distance."""
         assert self._model is not None
         
-        # Same 4 rhythmic features as training
-        x = fv.reshape(1, -1)[:, 6:10]
+        # Same biometric features as training (indices 6:28)
+        x = fv.reshape(1, -1)[:, 6:28]
         
         # decision_function: positive = inside margin (normal), negative = outside (anomaly)
         raw_score = float(self._model.decision_function(x)[0])
