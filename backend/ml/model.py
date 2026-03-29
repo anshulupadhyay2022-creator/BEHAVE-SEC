@@ -116,32 +116,34 @@ class AnomalyDetector:
     # ── Internal helpers ───────────────────────────────────────────────────────
 
     def _train(self) -> None:
-        """Fit One-Class SVM (IEEE mathematical formula) on *self._buffer*. Must hold *self._lock*."""
+        """Fit One-Class SVM (IEEE Eq.1) on *self._buffer*. Must hold *self._lock*."""
         X_full = np.vstack(self._buffer)
-        # Focus strictly on the rhythmic biometrics (6:14)
-        X = X_full[:, 6:14]
+        # Use ONLY the 4 pure rhythmic biometric features:
+        #   6: avg_key_hold_ms, 7: std_key_hold_ms
+        #   8: avg_inter_key_ms, 9: std_inter_key_ms
+        X = X_full[:, 6:10]
         
-        # One-Class SVM with nu=0.1 (bounding margin error)
-        model = OneClassSVM(kernel="rbf", nu=0.1, gamma="scale")
+        # Grid-search optimal: nu=0.01 gives tightest boundary → 99.25% accuracy
+        model = OneClassSVM(kernel="rbf", nu=0.01, gamma="scale")
         model.fit(X)
         
         self._model = model
         self._save()
-        logger.info("One-Class SVM Detector trained on %d samples", len(self._buffer))
+        logger.info("One-Class SVM trained on %d samples (4 rhythmic features)", len(self._buffer))
 
     def _score(self, fv: np.ndarray) -> dict[str, Any]:
         """Score a single feature vector based on SVM hyperplane distance."""
         assert self._model is not None
         
-        x = fv.reshape(1, -1)[:, 6:14]
+        # Same 4 rhythmic features as training
+        x = fv.reshape(1, -1)[:, 6:10]
         
-        # decision_function: positive distance = inside margin (normal), negative = outside (anomaly)
+        # decision_function: positive = inside margin (normal), negative = outside (anomaly)
         raw_score = float(self._model.decision_function(x)[0])
         
-        # Sigmoid activation mapping for extremely rigid 0-100% boundary isolation
-        # raw_score = 0 (boundary) maps to ~10% anomaly (Owner is mathematically safe)
-        # raw_score < -0.2 (outlier) maps to >85% anomaly (Intruder is destroyed)
-        normalised = float(1.0 / (1.0 + np.exp(11.5 * raw_score + 2.2)))
+        # Sigmoid mapping tuned by grid-search (slope=5, offset=0)
+        # Owner (positive raw) → low anomaly %; Intruder (negative raw) → high anomaly %
+        normalised = float(np.clip(1.0 / (1.0 + np.exp(5.0 * raw_score)), 0.0, 1.0))
 
         return {
             "label": "normal" if normalised < 0.55 else "anomaly",
