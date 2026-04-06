@@ -99,3 +99,12 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+
+class FeedbackPayload(BaseModel):
+    """Payload for submitting AI verification feedback."""
+    userId: str = Field(..., description="Unique identifier for the user")
+    isCorrect: bool = Field(..., description="True if the AI match was correct, false if it was wrong")
+    isOwner: Optional[bool] = Field(None, description="Explicitly set if this session was by the owner")
+    bypassDrift: bool = Field(False, description="Set to True if MFA was successfully completed")
+
+

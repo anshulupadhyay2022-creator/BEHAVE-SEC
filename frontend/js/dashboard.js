@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startSessionTimer();
     initLiveChart();
     initWebSocket(userId, token);
+    initReinforcement(userId);
 });
 
 function initWebSocket(userId, token) {
@@ -306,4 +307,68 @@ function initNotes() {
         window.tracker.logGameEvent('manual_save', 'notes', { length: notesArea.value.length });
         alert('Notes saved securely!');
     });
+}
+function initReinforcement(userId) {
+    const btn = document.getElementById('btn-reinforce');
+    const status = document.getElementById('reinforce-status');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        status.textContent = 'Analyzing behavioral drift...';
+        status.style.color = 'var(--accent-primary)';
+
+        try {
+            const apiBase = (window.BEHAVE_CONFIG && window.BEHAVE_CONFIG.API_BASE_URL) || 'http://localhost:8000';
+            const res = await fetch(`${apiBase}/model/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId, isOwner: true, isCorrect: true })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                status.textContent = '✓ Profile reinforced successfully!';
+                status.style.color = 'var(--success)';
+            } else if (res.status === 403 && data.detail && data.detail.status === 'mfa_required') {
+                status.textContent = '⚠ Drift detected! Redirecting to OTP verification...';
+                status.style.color = 'var(--error)';
+                localStorage.setItem('mfaEmail', data.detail.email);
+                localStorage.setItem('pendingReinforcement', 'true');
+                setTimeout(() => window.location.href = 'mfa.html', 1500);
+            } else {
+                status.textContent = 'Error: ' + (data.detail || 'Failed to reinforce.');
+                status.style.color = 'var(--error)';
+            }
+        } catch (err) {
+            status.textContent = 'Connection error. Is the backend running?';
+            status.style.color = 'var(--error)';
+        } finally {
+            if (status.textContent && status.textContent.includes('Redirecting')) {
+                // Do nothing, let redirect happen
+            } else {
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 3000);
+            }
+        }
+    });
+
+    // Check if we just came back from a successful MFA
+    const wasPending = localStorage.getItem('pendingReinforcement');
+    if (wasPending === 'true') {
+        localStorage.removeItem('pendingReinforcement');
+        status.textContent = '✓ MFA Verified. Profile update authorized.';
+        status.style.color = 'var(--success)';
+        // Re-submit with bypass
+        setTimeout(async () => {
+            const apiBase = (window.BEHAVE_CONFIG && window.BEHAVE_CONFIG.API_BASE_URL) || 'http://localhost:8000';
+            await fetch(`${apiBase}/model/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId, isOwner: true, isCorrect: true, bypassDrift: true })
+            });
+        }, 800);
+    }
 }

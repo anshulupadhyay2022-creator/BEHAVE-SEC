@@ -8,10 +8,12 @@ or through the project's init_backend.py initializer.
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any, AsyncIterator, Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.core.config import settings
 from backend.api.routes import router
@@ -73,6 +75,11 @@ def create_app() -> FastAPI:
 
     # ── API routes ───────────────────────────────────────────
     application.include_router(router)
+
+    # ── Serve frontend static files ─────────────────────────
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    if frontend_dir.is_dir():
+        application.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 
     return application
 

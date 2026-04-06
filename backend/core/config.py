@@ -31,6 +31,10 @@ class Settings:
     HOST: str = os.environ.get("BACKEND_HOST", "0.0.0.0")
     PORT: int = int(os.environ.get("BACKEND_PORT", "8000"))
     WORKERS: int = int(os.environ.get("BACKEND_WORKERS", "1"))
+    # Behavioral Drift Threshold (Cosine Similarity)
+    # If the similarity between a new session and the master centroid is < this, 
+    # the system triggers an OTP Step-Up challenge.
+    DRIFT_SIMILARITY_THRESHOLD: float = float(os.environ.get("DRIFT_SIMILARITY_THRESHOLD", "0.85"))
 
 
 # Singleton instance – import this everywhere

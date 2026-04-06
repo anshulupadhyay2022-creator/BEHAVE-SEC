@@ -45,6 +45,12 @@ from backend.models.schemas import BehavioralEvent
 # Number of features produced by extract_features()
 N_FEATURES = 28
 
+# Biometric Feature Groups (for Context-Aware Analysis)
+# These indices correspond to the 22 biometric features (6:28) used in model.py
+KB_INDICES = [6, 7, 8, 9, 16, 17, 18, 19, 20, 21] # Keystroke dwell, flight, digraphs
+MS_INDICES = [10, 11, 22, 23, 24, 25, 26, 27]    # Speed, accel, click, path
+MIX_INDICES = [12, 13, 14, 15]                   # Session timing and mix ratios
+
 # Names -- useful for diagnostics / dashboards
 FEATURE_NAMES = [
     "total_events",
