@@ -122,6 +122,7 @@ async def collect_behavioral_data(
             "riskScore": round(risk_score * 100, 2),
             "anomalyLabel": anomaly_result.get("label", "pending"),
             "anomalyScore": anomaly_score,
+            "botDetection": anomaly_result.get("bot_detection"),
             "hijackSuspected": hijack_suspected,
             "forceLogout": force_logout,
         }
@@ -158,3 +159,75 @@ async def collect_behavioral_data(
     except Exception as exc:
         print(f"\n[ERROR] Error processing data: {exc}\n")
         raise HTTPException(status_code=500, detail=f"Error processing data: {exc}") from exc
+
+
+# ── Route: POST /session/end ──────────────────────────────────────────────────
+from pydantic import BaseModel as _BaseModel
+
+class SessionEndPayload(_BaseModel):
+    userId: str
+    sessionId: str
+    sessionDurationMs: int = 0
+
+class ResendOtpPayload(_BaseModel):
+    email: str
+
+@router.post("/session/end")
+async def session_end(
+    payload: SessionEndPayload,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """
+    Called via sendBeacon on page unload.
+    Saves the user's most recent anomaly score as their new captcha baseline
+    so the next login comparison uses fresh end-of-session data.
+    """
+    try:
+        user = await repository.get_user_by_id(db, payload.userId)
+        if not user:
+            return {"status": "ignored", "reason": "user not found"}
+
+        detector = model_manager.get_detector(payload.userId)
+        det_status = detector.status
+
+        # Use the detector's last known threshold as a proxy for the session's
+        # normal operating score. If the model is trained, use p50 (0.45 neutral)
+        # otherwise skip saving.
+        if det_status.get("trained"):
+            # Pull the last few sessions' average score from DB
+            last_session = await repository.get_last_session_by_user(db, payload.userId)
+            if last_session and last_session.anomaly_score is not None:
+                final_score = float(last_session.anomaly_score)
+                new_avg = await repository.update_user_captcha_score(db, user, final_score)
+                print(f"[SESSION END] User {payload.userId}: saved final score {final_score:.4f} → new avg {new_avg:.4f}")
+                return {"status": "saved", "final_score": final_score, "new_baseline": new_avg}
+
+        return {"status": "skipped", "reason": "no trained model or no sessions"}
+
+    except Exception as exc:
+        print(f"[SESSION END ERROR] {exc}")
+        return {"status": "error", "reason": str(exc)}
+
+
+@router.post("/session/resend-otp")
+async def resend_otp(
+    payload: ResendOtpPayload,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """
+    Resend an OTP to a locked-out user's email during a live session block.
+    """
+    user = await repository.get_user_by_email(db, payload.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if not user.locked_out:
+        raise HTTPException(status_code=400, detail="Account is not locked.")
+
+    from datetime import timezone, timedelta
+    otp_code = generate_and_send_otp(user.email)
+    user.otp_code = otp_code
+    user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    await repository.update_user(db, user)
+
+    return {"status": "sent", "message": f"New OTP sent to {user.email}"}
+

@@ -1,170 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - BEHAVE - SEC</title>
+    <title>Security Dashboard - BEHAVE-SEC</title>
+    <meta name="description" content="BEHAVE-SEC continuous behavioral authentication SOC dashboard — real-time anomaly detection, risk scoring, and session analytics.">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/dashboard.css">
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
 
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-logo">
-            <img src="assets/logo.svg" alt="Logo" style="height: 30px; vertical-align: middle; margin-right: 8px;">
-            BEHAVE - SEC
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--accent-primary)" style="vertical-align:middle;margin-right:8px"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"/></svg>
+            BEHAVE-SEC
         </div>
         <div class="nav-links">
-            <a href="#" class="active">Dashboard</a>
-            <a href="assessment-with-tracking.html">Assessment</a>
-            <a href="analysis.html">Analysis</a>
-            <a href="#settings">Settings</a>
+            <a href="#" class="active" id="nav-dashboard">Dashboard</a>
+            <a href="assessment-with-tracking.html" id="nav-assessment">Assessment</a>
+            <a href="analysis.html" id="nav-analysis">Analysis</a>
+            <a href="#settings" id="nav-settings">Settings</a>
         </div>
-        <button class="logout-btn" onclick="
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            window.location.href='login.html'
-        ">Logout</button>
+        <div class="nav-right">
+            <div class="session-badge" id="session-badge">
+                <span class="badge-dot"></span>
+                <span id="session-timer">00:00:00</span>
+            </div>
+            <button class="logout-btn" id="btn-logout" onclick="
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                window.location.href='login.html'
+            ">Logout</button>
+        </div>
     </nav>
 
     <!-- Main Container -->
     <main class="container">
-        <div class="dashboard-grid">
 
-            <!-- 1. Stats Panel -->
-            <div class="card stats-panel">
-                <div class="stat-item">
-                    <div class="stat-value" id="risk-score" style="color: var(--success)">0</div>
-                    <div class="stat-label">Risk Score</div>
+        <!-- === ROW 1: KPI Strip === -->
+        <div class="kpi-strip">
+            <div class="kpi-card" id="kpi-risk">
+                <div class="kpi-value" id="risk-score" style="color:var(--success)">—</div>
+                <div class="kpi-label">Risk Score</div>
+                <div class="kpi-sub" id="kpi-risk-sub">Awaiting data</div>
+            </div>
+            <div class="kpi-card" id="kpi-status">
+                <div class="kpi-value" id="anomaly-label" style="color:var(--success)">Normal</div>
+                <div class="kpi-label">AI Status</div>
+                <div class="kpi-sub" id="kpi-status-sub">Live monitoring</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" id="kp-stat">0</div>
+                <div class="kpi-label">Keystrokes</div>
+                <div class="kpi-sub">This session</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" id="mm-stat">0</div>
+                <div class="kpi-label">Mouse Events</div>
+                <div class="kpi-sub">This session</div>
+            </div>
+            <div class="kpi-card" id="kpi-bot">
+                <div class="kpi-value" id="humanity-label" style="color:var(--success)">Human</div>
+                <div class="kpi-label">Bot Shield</div>
+                <div class="kpi-sub">Global model</div>
+            </div>
+            <div class="kpi-card" id="kpi-sessions">
+                <div class="kpi-value" id="total-sessions-val">—</div>
+                <div class="kpi-label">Total Sessions</div>
+                <div class="kpi-sub" id="kpi-events-sub">—</div>
+            </div>
+        </div>
+
+        <!-- === ROW 2: Gauge + Trend + Donut === -->
+        <div class="row-charts">
+
+            <!-- Risk Gauge -->
+            <div class="card gauge-card">
+                <div class="card-header">
+                    <span class="card-title">⚡ Risk Gauge</span>
+                    <span class="card-badge" id="gauge-label-badge">LIVE</span>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="anomaly-label" style="color: var(--success)">Normal</div>
-                    <div class="stat-label">AI Status</div>
+                <div class="gauge-wrap">
+                    <svg id="gauge-svg" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Track arc -->
+                        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="16" stroke-linecap="round"/>
+                        <!-- Value arc -->
+                        <path id="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#4CAF50" stroke-width="16" stroke-linecap="round"
+                              stroke-dasharray="251.2" stroke-dashoffset="251.2" style="transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1), stroke 0.5s;"/>
+                        <!-- Needle -->
+                        <line id="gauge-needle" x1="100" y1="100" x2="100" y2="30"
+                              stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"
+                              style="transform-origin:100px 100px; transform:rotate(-90deg); transition:transform 1.2s cubic-bezier(0.4,0,0.2,1);"/>
+                        <circle cx="100" cy="100" r="5" fill="white" opacity="0.6"/>
+                        <!-- Risk value text -->
+                        <text id="gauge-text" x="100" y="88" text-anchor="middle" font-size="28" font-weight="800" fill="white" font-family="JetBrains Mono,monospace">0</text>
+                        <text x="100" y="112" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.4)" font-family="Nunito,sans-serif">RISK SCORE / 100</text>
+                        <!-- Scale markers -->
+                        <text x="18" y="118" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.3)">0</text>
+                        <text x="182" y="118" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.3)">100</text>
+                    </svg>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="session-timer">00:00:00</div>
-                    <div class="stat-label">Session Duration</div>
+                <div class="gauge-meta">
+                    <div class="gauge-meta-item"><span class="dot green"></span>0–30 Normal</div>
+                    <div class="gauge-meta-item"><span class="dot orange"></span>31–70 Elevated</div>
+                    <div class="gauge-meta-item"><span class="dot red"></span>71–100 Critical</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="kp-stat">0</div>
-                    <div class="stat-label">Keystrokes</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="mm-stat">0</div>
-                    <div class="stat-label">Mouse Moves</div>
-                </div>
-                <div class="stat-item" style="grid-column: span 5; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                    <button id="btn-reinforce" class="logout-btn" style="width: 100%; border-color: var(--accent-primary); color: var(--accent-primary);">
-                        🛡️ Reinforce My Profile
+                <div style="margin-top:1.2rem">
+                    <button id="btn-reinforce" class="action-btn reinforce-btn">
+                        🛡️ Reinforce Profile
                     </button>
-                    <div id="reinforce-status" style="font-size: 0.8rem; margin-top: 0.5rem; text-align: center; color: var(--text-secondary);"></div>
+                    <div id="reinforce-status" class="reinforce-status"></div>
                 </div>
             </div>
 
-            <!-- 2. Typing Challenge -->
-            <div class="card typing-card">
-                <h3>💬 Typing Biometrics <span id="typing-result" style="font-size:0.9rem"></span></h3>
-                <div id="typing-text">Loading text...</div>
-                <textarea id="typing-input" class="game-input" rows="3"
-                    placeholder="Re-type the text above..."></textarea>
-            </div>
-
-            <!-- 3. Reaction Game -->
-            <div class="card reaction-card">
-                <h3>⚡ Reaction Test</h3>
-                <div id="reaction-area">Click to Start</div>
-                <div id="reaction-status" style="text-align:center; margin-top:1rem; color:var(--text-secondary)"></div>
-            </div>
-
-            <!-- 4. Daily Quiz -->
-            <div class="card quiz-card">
-                <h3>🛡️ Quick Quiz</h3>
-                <div style="margin-bottom:1rem">What is Phishing?</div>
-                <button class="quiz-option" data-value="A">A type of fish</button>
-                <button class="quiz-option" data-value="B">Email fraud attempt</button>
-                <button class="quiz-option" data-value="C">Network protocol</button>
-            </div>
-
-            <!-- 5. Secure Notes -->
-            <div class="card notes-card">
-                <h3>📝 Secure Notes</h3>
-                <textarea id="secure-notes" class="game-input" rows="10"
-                    placeholder="Write your daily security logs here..."></textarea>
-                <div style="text-align:right; margin-top:1rem">
-                    <button id="save-notes" class="logout-btn"
-                        style="border-color:var(--accent-primary); color:var(--accent-primary)">Save Note</button>
+            <!-- Anomaly Trend Chart -->
+            <div class="card trend-card">
+                <div class="card-header">
+                    <span class="card-title">📈 Anomaly Trend</span>
+                    <span class="card-badge blue" id="trend-session-count">Loading…</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="trendChart"></canvas>
                 </div>
             </div>
 
-            <!-- 6. Behavior Graph -->
-            <div class="card graph-card">
-                <h3>📊 Live Behavior Stream</h3>
-                <canvas id="behaviorChart"></canvas>
+            <!-- Detection Donut -->
+            <div class="card donut-card">
+                <div class="card-header">
+                    <span class="card-title">🎯 Detections</span>
+                </div>
+                <div class="donut-wrap">
+                    <canvas id="donutChart"></canvas>
+                </div>
+                <div class="donut-legend" id="donut-legend">
+                    <div class="legend-item"><span class="dot green"></span><span id="leg-normal">Normal: —</span></div>
+                    <div class="legend-item"><span class="dot red"></span><span id="leg-anomaly">Anomaly: —</span></div>
+                    <div class="legend-item"><span class="dot grey"></span><span id="leg-pending">Pending: —</span></div>
+                </div>
+                <div class="avg-risk-today">
+                    <div class="avg-risk-label">Avg Risk Today</div>
+                    <div class="avg-risk-val" id="avg-risk-today">—</div>
+                </div>
             </div>
 
         </div>
+
+        <!-- === ROW 3: Event Feed + Live Stream + Typing === -->
+        <div class="row-bottom">
+
+            <!-- Live Detection Feed -->
+            <div class="card feed-card">
+                <div class="card-header">
+                    <span class="card-title">🔴 Detection Feed</span>
+                    <span class="card-badge pulsing" id="feed-live-badge">LIVE</span>
+                </div>
+                <div class="feed-list" id="detection-feed">
+                    <div class="feed-empty">Waiting for sessions…</div>
+                </div>
+            </div>
+
+            <!-- Live Behavior Stream -->
+            <div class="card stream-card">
+                <div class="card-header">
+                    <span class="card-title">📊 Live Behavior Stream</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="behaviorChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Typing Biometrics -->
+            <div class="card typing-card">
+                <div class="card-header">
+                    <span class="card-title">⌨️ Typing Biometrics</span>
+                    <span id="typing-result" class="typing-result-badge"></span>
+                </div>
+                <div id="typing-text" class="typing-target-text">Loading…</div>
+                <textarea id="typing-input" class="game-input" rows="3" placeholder="Re-type the text above to submit biometrics…"></textarea>
+            </div>
+
+        </div>
+
     </main>
 
     <!-- Settings Modal -->
-    <div id="settings-modal" class="modal"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
-        <div class="modal-content"
-            style="background: var(--bg-secondary); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); width: 400px; position: relative;">
-            <span class="close-modal"
-                style="position: absolute; top: 10px; right: 15px; color: var(--text-secondary); cursor: pointer; font-size: 1.5rem;">&times;</span>
-            <h2 style="color: var(--text-primary); margin-bottom: 1.5rem; font-family: var(--font-main);">Settings</h2>
-
-            <div class="setting-item"
-                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <span style="color: var(--text-primary);">Light Mode</span>
-                <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
-                    <input type="checkbox" id="theme-toggle" style="opacity: 0; width: 0; height: 0;">
-                    <span class="slider round"
-                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--text-secondary); transition: .4s; border-radius: 24px;"></span>
-                    <style>
-                        .slider:before {
-                            position: absolute;
-                            content: "";
-                            height: 16px;
-                            width: 16px;
-                            left: 4px;
-                            bottom: 4px;
-                            background-color: white;
-                            transition: .4s;
-                            border-radius: 50%;
-                        }
-
-                        input:checked+.slider {
-                            background-color: var(--accent-primary);
-                        }
-
-                        input:checked+.slider:before {
-                            transform: translateX(26px);
-                        }
-                    </style>
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-settings">&times;</span>
+            <h2>Settings</h2>
+            <div class="setting-item">
+                <span>Light Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider round"></span>
                 </label>
             </div>
-
-            <div
-                style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">
-                BEHAVE-SEC v1.0.0
-            </div>
+            <div class="setting-footer">BEHAVE-SEC v2.0.0</div>
         </div>
     </div>
 
+    <!-- ── SESSION BLOCK OVERLAY — shown when in-session anomaly detected ── -->
+    <div id="session-block-overlay" style="display:none; position:fixed; inset:0; z-index:9000;
+         background:rgba(0,0,0,0.88); backdrop-filter:blur(8px);
+         display:none; align-items:center; justify-content:center; flex-direction:column;">
+        <div id="session-block-card" style="
+            background:var(--bg-secondary);
+            border:1px solid rgba(244,51,52,0.5);
+            border-radius:16px;
+            padding:2.8rem 2.5rem;
+            max-width:440px; width:90%;
+            text-align:center;
+            box-shadow:0 0 60px rgba(244,51,52,0.2);
+            animation:session-block-pulse 2s ease-in-out infinite;
+        ">
+            <!-- Icon -->
+            <div style="font-size:3rem; margin-bottom:1rem;">🔒</div>
+
+            <!-- Title -->
+            <h2 style="color:var(--accent-primary); font-family:var(--font-main);
+                       font-size:1.4rem; font-weight:800; margin-bottom:0.5rem;
+                       letter-spacing:1px; text-transform:uppercase;">
+                Session Blocked
+            </h2>
+            <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.6; margin-bottom:0.4rem;">
+                Anomalous behavior detected during your session.
+            </p>
+            <p id="block-email-hint" style="color:#f43334; font-size:0.82rem; margin-bottom:1.8rem;">
+                An OTP has been sent to your registered email.
+            </p>
+
+            <!-- Anomaly score display -->
+            <div style="display:flex; justify-content:center; gap:1.5rem; margin-bottom:1.8rem; flex-wrap:wrap;">
+                <div style="text-align:center;">
+                    <div id="block-risk-val" style="font-family:var(--font-mono); font-size:1.8rem;
+                         font-weight:800; color:var(--accent-primary);">—</div>
+                    <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1px;
+                         color:var(--text-secondary); margin-top:0.2rem;">Risk Score</div>
+                </div>
+                <div style="text-align:center;">
+                    <div id="block-anomaly-val" style="font-family:var(--font-mono); font-size:1.8rem;
+                         font-weight:800; color:#FF9800;">—</div>
+                    <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1px;
+                         color:var(--text-secondary); margin-top:0.2rem;">Anomaly Score</div>
+                </div>
+            </div>
+
+            <!-- OTP Input -->
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; font-size:0.75rem; text-transform:uppercase;
+                              letter-spacing:1px; color:var(--text-secondary); margin-bottom:0.6rem;">
+                    Enter OTP Code
+                </label>
+                <input id="block-otp-input" type="text" maxlength="6" inputmode="numeric"
+                       placeholder="000000"
+                       style="width:100%; background:var(--input-bg);
+                              border:1px solid var(--accent-primary);
+                              border-radius:8px; padding:0.9rem 1rem;
+                              color:var(--text-primary); font-family:var(--font-mono);
+                              font-size:1.6rem; text-align:center; letter-spacing:0.4em;
+                              outline:none; transition:box-shadow 0.2s;"
+                       oninput="this.value=this.value.replace(/\D/g,'')">
+            </div>
+
+            <!-- Status message -->
+            <div id="block-otp-status" style="min-height:1.2rem; font-size:0.8rem;
+                 color:var(--text-secondary); margin-bottom:1rem;"></div>
+
+            <!-- Submit button -->
+            <button id="block-otp-submit" onclick="submitSessionOtp()"
+                    style="width:100%; padding:0.85rem; border-radius:8px;
+                           background:var(--accent-primary); color:white; border:none;
+                           font-family:var(--font-main); font-weight:700; font-size:0.95rem;
+                           cursor:pointer; transition:all 0.2s; letter-spacing:0.5px;">
+                🔓 Verify &amp; Unlock Session
+            </button>
+
+            <!-- Resend hint -->
+            <p style="margin-top:1.2rem; font-size:0.75rem; color:var(--text-secondary);">
+                Didn't receive it?
+                <a href="#" onclick="resendSessionOtp(); return false;"
+                   style="color:var(--accent-primary); text-decoration:none;">Resend OTP</a>
+            </p>
+        </div>
+    </div>
+
+    <style>
+    @keyframes session-block-pulse {
+        0%, 100% { box-shadow: 0 0 40px rgba(244,51,52,0.15); border-color: rgba(244,51,52,0.4); }
+        50%       { box-shadow: 0 0 70px rgba(244,51,52,0.35); border-color: rgba(244,51,52,0.8); }
+    }
+    #block-otp-input:focus { box-shadow: 0 0 0 3px rgba(244,51,52,0.25); }
+    #block-otp-submit:hover { background: #c62828; transform: translateY(-1px); }
+    #block-otp-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    </style>
+
     <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/tracking.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/settings.js"></script>
 
-    <!-- Chart Logic -->
-
 </body>
-
 </html>

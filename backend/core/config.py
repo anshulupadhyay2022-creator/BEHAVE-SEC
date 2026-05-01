@@ -34,7 +34,13 @@ class Settings:
     # Behavioral Drift Threshold (Cosine Similarity)
     # If the similarity between a new session and the master centroid is < this, 
     # the system triggers an OTP Step-Up challenge.
-    DRIFT_SIMILARITY_THRESHOLD: float = float(os.environ.get("DRIFT_SIMILARITY_THRESHOLD", "0.85"))
+    # 0.90 = strict — only sessions very close to the owner's centroid are accepted.
+    DRIFT_SIMILARITY_THRESHOLD: float = float(os.environ.get("DRIFT_SIMILARITY_THRESHOLD", "0.90"))
+
+    # CAPTCHA Score Drift Threshold (absolute difference in anomaly score 0.0-1.0)
+    # If |new_captcha_score - stored_baseline_score| > this, lock account and send OTP.
+    # 0.12 = strict — only 12% score drift allowed before triggering a challenge.
+    SCORE_DRIFT_THRESHOLD: float = float(os.environ.get("SCORE_DRIFT_THRESHOLD", "0.12"))
 
 
 # Singleton instance – import this everywhere

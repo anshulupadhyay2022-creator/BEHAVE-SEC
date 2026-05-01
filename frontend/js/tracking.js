@@ -8,18 +8,20 @@ class BehaviorTracker {
         // Default to dynamic API URL from config.js
         const defaultEndpoint = (typeof API_BASE_URL !== 'undefined') ? `${API_BASE_URL}/collect-data` : 'http://localhost:8000/collect-data';
         this.endpoint = options.endpoint || defaultEndpoint;
-        this.batchSize = options.batchSize || 50; // Max events to send at once
-        this.flushInterval = options.flushInterval || 15000; // 15 seconds
+        this.batchSize = options.batchSize || 50;     // Max events to send at once
+        this.flushInterval = options.flushInterval || 5000;  // 5 seconds — near-real-time detection
 
         this.events = [];
         this.startTime = Date.now();
         this.buffer = [];
+        this.sessionEndpoint = options.sessionEndpoint || null;
 
         // For Keystroke Dynamics
         this.keyPressMap = new Map(); // key -> downTime
 
         this.initListeners();
         this.startFlushing();
+        this.initBeforeUnload();
 
         console.log(`BehaviorTracker initialized. User: ${this.userId}, Session: ${this.sessionId}`);
     }
@@ -52,11 +54,11 @@ class BehaviorTracker {
             this.logEvent('keyup', e, null);
         });
 
-        // Mouse events (throttled)
+        // Mouse events throttled at 50ms for high-resolution behavioral capture
         let lastMove = 0;
         document.addEventListener('mousemove', (e) => {
             const now = Date.now();
-            if (now - lastMove > 100) { // Log every 100ms
+            if (now - lastMove > 50) {  // 50ms resolution
                 this.logEvent('mousemove', e, null);
                 lastMove = now;
             }
@@ -64,11 +66,11 @@ class BehaviorTracker {
 
         document.addEventListener('click', (e) => this.logEvent('click', e, null));
 
-        // Scroll events (throttled)
+        // Scroll events throttled at 50ms
         let lastScroll = 0;
         document.addEventListener('scroll', (e) => {
             const now = Date.now();
-            if (now - lastScroll > 100) { // Log every 100ms
+            if (now - lastScroll > 50) {  // 50ms resolution
                 this.logEvent('scroll', e, null);
                 lastScroll = now;
             }
@@ -142,8 +144,9 @@ class BehaviorTracker {
         if (event) {
             if (event.key) eventData.key = event.key;
             if (event.code) eventData.keyCode = event.code; // Use code for consistency
-            if (event.clientX !== undefined) eventData.mouseX = event.clientX;
-            if (event.clientY !== undefined) eventData.mouseY = event.clientY;
+            // Schema expects clientX/clientY — use these field names exactly
+            if (event.clientX !== undefined) eventData.clientX = event.clientX;
+            if (event.clientY !== undefined) eventData.clientY = event.clientY;
 
             // Add scroll specific properties
             if (type === 'scroll') {
@@ -154,8 +157,9 @@ class BehaviorTracker {
             // Add touch specific properties
             if (type.startsWith('touch') && event.touches && event.touches.length > 0) {
                 const touch = event.touches[0];
-                eventData.mouseX = touch.clientX;
-                eventData.mouseY = touch.clientY;
+                // Schema expects clientX/clientY for coordinate fields
+                eventData.clientX = touch.clientX;
+                eventData.clientY = touch.clientY;
                 if (touch.force !== undefined) eventData.pressure = touch.force;
             }
 
@@ -184,10 +188,64 @@ class BehaviorTracker {
     }
 
     /**
-     * Start the periodic data flushing
+     * Start the periodic data flushing (every 5 seconds)
      */
     startFlushing() {
         setInterval(() => this.flushData(), this.flushInterval);
+    }
+
+    /**
+     * Register beforeunload handler to flush remaining events and save session score.
+     * Uses sendBeacon for reliability during page unload.
+     */
+    initBeforeUnload() {
+        window.addEventListener('beforeunload', () => {
+            // 1. Flush any remaining events synchronously via sendBeacon
+            if (this.events.length > 0) {
+                const token = localStorage.getItem('token');
+                const batch = this.events.splice(0, this.events.length);
+                const payload = JSON.stringify({
+                    userId: this.userId,
+                    sessionId: this.sessionId,
+                    events: batch,
+                    metadata: {
+                        batchSize: batch.length,
+                        timestamp: Date.now(),
+                        userAgent: navigator.userAgent,
+                        screenWidth: window.innerWidth,
+                        screenHeight: window.innerHeight,
+                        sessionDuration: Date.now() - this.startTime,
+                    }
+                });
+                // sendBeacon works reliably during unload; token in query string fallback
+                const url = this.endpoint + (token ? `?token=${encodeURIComponent(token)}` : '');
+                navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+            }
+
+            // 2. Fire session-end score save
+            this.saveSessionScore();
+        });
+    }
+
+    /**
+     * Save the final session score to the backend so next login uses fresh baseline.
+     * Called on beforeunload via sendBeacon.
+     */
+    saveSessionScore() {
+        const apiBase = (typeof API_BASE_URL !== 'undefined') ? API_BASE_URL : 'http://localhost:8000';
+        const token   = localStorage.getItem('token');
+        if (!token || !this.userId) return;
+
+        const payload = JSON.stringify({
+            userId:       this.userId,
+            sessionId:    this.sessionId,
+            sessionDurationMs: Date.now() - this.startTime,
+        });
+        navigator.sendBeacon(
+            `${apiBase}/session/end`,
+            new Blob([payload], { type: 'application/json' })
+        );
+        console.log('[Tracker] Session-end score save triggered.');
     }
 
     /**

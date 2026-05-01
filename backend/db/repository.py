@@ -102,3 +102,21 @@ async def update_user(db: AsyncSession, user: UserRow) -> UserRow:
     await db.refresh(user)
     return user
 
+
+async def update_user_captcha_score(db: AsyncSession, user: UserRow, new_score: float) -> float:
+    """
+    Append new_score to the user's captcha_score_history (max 3 entries),
+    recompute the rolling average, persist it, and return the new average.
+    """
+    history: list = list(user.captcha_score_history or [])
+    history.append(round(new_score, 4))
+    # Keep only last 3 scores for the rolling window
+    history = history[-3:]
+    rolling_avg = round(sum(history) / len(history), 4)
+
+    user.captcha_score_history = history
+    user.last_captcha_score = rolling_avg
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return rolling_avg

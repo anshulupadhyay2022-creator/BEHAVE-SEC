@@ -20,11 +20,11 @@ class BehavioralEvent(BaseModel):
     key: Optional[str] = Field(None, description="Key pressed")
     keyCode: Optional[int] = Field(None, description="Key code")
 
-    # Mouse fields
-    clientX: Optional[int] = Field(None, description="Mouse X relative to viewport")
-    clientY: Optional[int] = Field(None, description="Mouse Y relative to viewport")
-    pageX: Optional[int] = Field(None, description="Mouse X relative to page")
-    pageY: Optional[int] = Field(None, description="Mouse Y relative to page")
+    # Mouse fields (using float for browser fractional precision)
+    clientX: Optional[float] = Field(None, description="Mouse X relative to viewport")
+    clientY: Optional[float] = Field(None, description="Mouse Y relative to viewport")
+    pageX: Optional[float] = Field(None, description="Mouse X relative to page")
+    pageY: Optional[float] = Field(None, description="Mouse Y relative to page")
 
     # Target element
     target: Optional[str] = Field(None, description="HTML target element")
@@ -32,8 +32,8 @@ class BehavioralEvent(BaseModel):
     targetName: Optional[str] = Field(None, description="Name of target element")
 
     # Scroll fields
-    scrollX: Optional[int] = Field(None, description="Scroll X position")
-    scrollY: Optional[int] = Field(None, description="Scroll Y position")
+    scrollX: Optional[float] = Field(None, description="Scroll X position")
+    scrollY: Optional[float] = Field(None, description="Scroll Y position")
     
     # Mobile Sensor fields
     pressure: Optional[float] = Field(None, description="Touch pressure (0.0 to 1.0)")
@@ -48,7 +48,7 @@ class BehavioralEvent(BaseModel):
     @classmethod
     def validate_event_type(cls, v: str) -> str:
         allowed_types = {
-            "keydown", "keyup", "mousemove", "click", "scroll",
+            "keydown", "keyup", "mousemove", "click", "mousedown", "mouseup", "scroll",
             "touchstart", "touchend", "touchmove", "deviceorientation", "devicemotion"
         }
         if v not in allowed_types:
@@ -106,5 +106,21 @@ class FeedbackPayload(BaseModel):
     isCorrect: bool = Field(..., description="True if the AI match was correct, false if it was wrong")
     isOwner: Optional[bool] = Field(None, description="Explicitly set if this session was by the owner")
     bypassDrift: bool = Field(False, description="Set to True if MFA was successfully completed")
+
+
+class ChallengeVerify(BaseModel):
+    """Payload for submitting behavioral CAPTCHA data during login."""
+    email: str
+    password: str
+    keyboard_events: List[BehavioralEvent]
+    mouse_events: List[BehavioralEvent]
+    metadata: SessionMetadata
+
+
+class LoginChallengeResponse(BaseModel):
+    """Response returned when a behavioral challenge is required."""
+    status: str
+    message: str
+    email: str
 
 

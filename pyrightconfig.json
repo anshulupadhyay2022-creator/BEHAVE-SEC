@@ -14,6 +14,7 @@
     "typeCheckingMode": "basic",
     "extraPaths": [
         ".",
+        "d:\\BEHAVE SEC",
         "venv\\Lib\\site-packages"
     ]
 }

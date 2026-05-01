@@ -4,6 +4,7 @@ SQLAlchemy ORM model for the `sessions` table.
 """
 
 import uuid
+from typing import Optional
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -30,6 +31,12 @@ class User(Base):
     otp_code: Mapped[str | None] = mapped_column(String(10))
     otp_expires_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True))
     locked_out: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # CAPTCHA Session Score — rolling baseline for continuous authentication
+    # last_captcha_score: rolling average of the last 3 CAPTCHA anomaly scores
+    # captcha_score_history: JSON list of up to 3 most recent raw scores
+    last_captcha_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    captcha_score_history: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),

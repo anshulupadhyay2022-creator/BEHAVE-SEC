@@ -239,40 +239,36 @@ def extract_features(events: List[BehavioralEvent]) -> np.ndarray:
     avg_accel = float(np.mean(accelerations)) if accelerations else 0.0
     std_accel = _safe_std(accelerations)
 
-    # -- 9. Path directness between consecutive clicks ---
+    # -- 9. Path directness & Click Intervals ---
     click_events = [
         e for e in events
         if e.eventType == "click"
         and e.clientX is not None and e.clientY is not None
     ]
-    directness_ratios: list[float] = []
     click_intervals: list[float] = []
 
     for i in range(1, len(click_events)):
         prev_c, curr_c = click_events[i - 1], click_events[i]
-        # Straight-line distance between clicks
-        straight = math.hypot(curr_c.clientX - prev_c.clientX, curr_c.clientY - prev_c.clientY)  # type: ignore[operator]
-        # Actual path distance (sum of mousemove segments between these clicks)
-        path_moves = [
-            e for e in mouse_events
-            if prev_c.timestamp <= e.timestamp <= curr_c.timestamp
-        ]
-        actual_dist = 0.0
-        for j in range(1, len(path_moves)):
-            p, c = path_moves[j - 1], path_moves[j]
-            actual_dist += math.hypot(c.clientX - p.clientX, c.clientY - p.clientY)  # type: ignore[operator]
-
-        if actual_dist > 0:
-            directness_ratios.append(straight / actual_dist)
-
-        # Click interval
         dt = curr_c.timestamp - prev_c.timestamp
         if 0 < dt < 30_000:
             click_intervals.append(float(dt))
 
-    path_direct = float(np.mean(directness_ratios)) if directness_ratios else 0.0
     avg_click_int = float(np.mean(click_intervals)) if click_intervals else 0.0
     std_click_int = _safe_std(click_intervals)
+
+    # Path directness over the entire session's mouse trajectory
+    path_direct = 0.0
+    if len(mouse_events) >= 2:
+        start_m, end_m = mouse_events[0], mouse_events[-1]
+        straight = math.hypot(end_m.clientX - start_m.clientX, end_m.clientY - start_m.clientY)  # type: ignore[operator]
+        
+        actual_dist = 0.0
+        for i in range(1, len(mouse_events)):
+            p, c = mouse_events[i - 1], mouse_events[i]
+            actual_dist += math.hypot(c.clientX - p.clientX, c.clientY - p.clientY)  # type: ignore[operator]
+            
+        if actual_dist > 0:
+            path_direct = float(straight / actual_dist)
 
     # -- 10. Click precision (mean distance of clicks from click centroid) ---
     if len(click_events) >= 2:

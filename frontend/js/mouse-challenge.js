@@ -12,7 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Config ──
     const TARGETS_PER_ROUND = 15;
-    const CHALLENGE_USER_ID = "mouse_user_" + Math.floor(Math.random() * 100000);
+    // Use the same userId as challenge.html so both phases write to the SAME model
+    const API_BASE = (window.BEHAVE_CONFIG && window.BEHAVE_CONFIG.API_BASE_URL) || 'http://127.0.0.1:8000';
+    const CHALLENGE_USER_ID = localStorage.getItem('behave_userId') || 'guest_demo@behave-sec.com';
     const MARGIN = 80; // px from edges
 
     // ── State ──
@@ -27,22 +29,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Mouse Trail Effect ──
     let trailThrottle = 0;
+    let lastMouseTime = 0;
     arena.addEventListener('mousemove', (e) => {
         if (phase === 'idle') return;
         const now = Date.now();
-        
-        // Capture mouse event
+        // Throttle to one sample per 100ms to mirror challenge.js behaviour
+        if (now - lastMouseTime < 100) return;
+        lastMouseTime = now;
+
         mouseEvents.push({
             eventType: 'mousemove',
             timestamp: now,
             relativeTime: now - phaseStartTime,
             clientX: e.clientX,
             clientY: e.clientY,
-            key: null,
-            keyCode: 0
+            key: null
         });
 
-        // Visual trail (throttled)
+        // Visual trail (throttled separately for rendering)
         if (now - trailThrottle > 30) {
             trailThrottle = now;
             const dot = document.createElement('div');
@@ -155,35 +159,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Send Training Data ──
+    // Submits the real session + 14 jittered variants (15 total) to /analyze.
+    // Each payload includes ONLY mouse events — this page is a supplementary
+    // mouse-only enrollment. The primary multimodal sessions are sent from challenge.js.
     async function sendTrainingData() {
         let successCount = 0;
+        console.log(`[mouse-challenge] Sending ${mouseEvents.length} mouse events for user: ${CHALLENGE_USER_ID}`);
 
-        // 1. Send the real session
-        const realPayload = buildPayload("real_mouse_0");
-        try {
-            const res = await fetch('http://localhost:8000/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(realPayload)
-            });
-            if (res.ok) successCount++;
-        } catch (err) { console.error(err); }
+        for (let i = 0; i < 15; i++) {
+            const sf = i === 0 ? 1.0 : (0.88 + Math.random() * 0.24);
+            const j  = i === 0 ? 0   : 10;
 
-        // 2. Generate synthetic variants (49 more to hit 50 total)
-        for (let i = 1; i < 50; i++) {
-            const speedFactor = 0.88 + (Math.random() * 0.24); // 0.88x to 1.12x
-            const jitter = 12;
-            const synPayload = {
+            const synEvents = mouseEvents.map(ev => ({
+                ...ev,
+                timestamp: phaseStartTime + Math.round((ev.timestamp - phaseStartTime) * sf + (Math.random() * j * 2 - j)),
+                relativeTime: Math.round(ev.relativeTime * sf),
+                clientX: ev.clientX !== null ? ev.clientX + (i === 0 ? 0 : Math.round(Math.random() * 6 - 3)) : null,
+                clientY: ev.clientY !== null ? ev.clientY + (i === 0 ? 0 : Math.round(Math.random() * 6 - 3)) : null
+            }));
+
+            const payload = {
                 userId: CHALLENGE_USER_ID,
-                sessionId: "synth_mouse_" + i + "_" + Date.now(),
-                events: mouseEvents.map(ev => ({
-                    ...ev,
-                    timestamp: phaseStartTime + Math.round((ev.timestamp - phaseStartTime) * speedFactor + (Math.random() * jitter * 2 - jitter)),
-                    relativeTime: Math.round(ev.relativeTime * speedFactor + (Math.random() * jitter * 2 - jitter)),
-                    // Jitter mouse positions slightly for synthetic variance
-                    clientX: ev.clientX !== null ? ev.clientX + Math.round(Math.random() * 6 - 3) : null,
-                    clientY: ev.clientY !== null ? ev.clientY + Math.round(Math.random() * 6 - 3) : null
-                })),
+                sessionId: 'mc_mouse_' + i + '_' + Date.now(),
+                events: synEvents,
                 metadata: {
                     userAgent: navigator.userAgent,
                     screenWidth: window.innerWidth,
@@ -191,32 +189,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionDuration: Date.now() - phaseStartTime
                 }
             };
+
             try {
-                const res = await fetch('http://localhost:8000/analyze', {
+                const res = await fetch(API_BASE + '/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(synPayload)
+                    body: JSON.stringify(payload)
                 });
                 if (res.ok) successCount++;
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error('[mouse-challenge] send error:', err);
+            }
         }
-        console.log(`Training complete: ${successCount}/50 sessions sent.`);
+        console.log(`[mouse-challenge] Training done: ${successCount}/15 sessions sent.`);
     }
 
     // ── Send Intruder Data ──
     async function sendIntruderData() {
-        const payload = buildPayload("hack_mouse_" + Date.now());
+        const payload = buildPayload('mc_hack_' + Date.now());
         try {
-            const res = await fetch('http://localhost:8000/analyze', {
+            const res = await fetch(API_BASE + '/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            showResult(data.anomaly.score);
+            showResult(data.anomaly ? data.anomaly.score : 0.5);
         } catch (err) {
-            console.error(err);
-            showResult(0.5); // fallback
+            console.error('[mouse-challenge]', err);
+            showResult(0.5);
         }
     }
 

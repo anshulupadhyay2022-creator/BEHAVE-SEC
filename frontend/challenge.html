@@ -9,60 +9,81 @@
         .split-container { display: flex; gap: 2rem; margin-top: 2rem; flex-wrap: wrap; justify-content: center; }
         .challenge-panel {
             flex: 1; min-width: 320px; max-width: 600px;
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 2.5rem; display: none;
+            background: rgba(17, 20, 36, 0.5); /* Glassmorphic Base */
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px; padding: 2.5rem;
+            display: none; 
+            opacity: 0;
+            position: relative; /* CRITICAL: Allows absolute overlay to cover this panel */
+            overflow: hidden; /* Ensure overlay respects rounded corners */
+            transform: translateY(20px);
+            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s;
         }
-        .challenge-panel.active-panel { display: block !important; border-color: var(--accent-primary); box-shadow: 0 0 25px rgba(0, 212, 255, 0.15); }
+        .challenge-panel.active-panel { 
+            display: block !important; 
+            border-color: rgba(0, 212, 255, 0.3); 
+            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.1); 
+        }
+        .challenge-panel.active-panel.faded-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
         .reference-text {
-            background: #111424; padding: 1.2rem; border-radius: 8px; font-family: var(--font-mono);
+            background: rgba(0,0,0,0.4); padding: 1.2rem; border-radius: 8px; font-family: var(--font-mono);
             color: var(--accent-primary); margin-bottom: 1.5rem; user-select: none; line-height: 1.6;
+            border: 1px solid rgba(0, 212, 255, 0.1);
         }
         .typing-area {
             width: 100%; padding: 1.2rem; background: rgba(0,0,0,0.6); border: 1px solid var(--border-color);
             color: white; font-family: var(--font-mono); border-radius: 8px; margin-bottom: 1.5rem;
-            resize: none; font-size: 1rem;
+            resize: none; font-size: 1rem; transition: border-color 0.3s;
         }
+        .typing-area:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 10px rgba(0,212,255,0.1); }
         .result-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98); display: flex; flex-direction: column;
+            background: rgba(10, 10, 26, 0.95); backdrop-filter: blur(8px); display: flex; flex-direction: column;
             align-items: center; justify-content: center; opacity: 0; pointer-events: none;
-            transition: opacity 0.4s; z-index: 100;
+            transition: opacity 0.4s; z-index: 100; border-radius: 16px;
         }
         .result-overlay.show { opacity: 1; pointer-events: all; }
         .mouse-arena {
-            position: relative; width: 100%; height: 280px; background: #0a0a1a;
+            position: relative; width: 100%; height: 280px; background: rgba(0,0,0,0.4);
             border-radius: 12px; overflow: hidden; cursor: crosshair; border: 1px solid rgba(0,212,255,0.1);
         }
         .arena-target {
             position: absolute; width: 44px; height: 44px; border-radius: 50%;
             background: radial-gradient(circle, #00d4ff 0%, #0066ff 70%);
             box-shadow: 0 0 20px rgba(0,212,255,0.6); transform: translate(-50%,-50%); cursor: pointer;
+            transition: transform 0.1s;
         }
+        .arena-target:active { transform: translate(-50%, -50%) scale(0.9); }
         .steps { display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 2.5rem; }
-        .step-dot { width: 14px; height: 14px; border-radius: 50%; background: #2a2d3e; }
-        .step-dot.active { background: var(--accent-primary); box-shadow: 0 0 15px var(--accent-primary); }
-        .step-dot.done { background: #4CAF50; }
+        .step-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.1); transition: all 0.3s; }
+        .step-dot.active { background: var(--accent-primary); box-shadow: 0 0 15px var(--accent-primary); transform: scale(1.3); }
+        .step-dot.done { background: #4CAF50; box-shadow: 0 0 10px #4CAF50; }
         #debug-console {
-            position: fixed; bottom: 15px; right: 15px; width: 320px; height: 100px;
-            background: rgba(0,0,0,0.9); color: #00ff00; font-family: monospace; font-size: 10px;
-            padding: 10px; border: 1px solid #333; border-radius: 8px; overflow-y: auto;
+            position: fixed; bottom: 15px; right: 15px; width: 320px; max-height: 120px;
+            background: rgba(0,0,0,0.8); color: #00ff00; font-family: var(--font-mono); font-size: 0.75rem;
+            padding: 10px; border: 1px solid rgba(0,255,0,0.2); border-radius: 8px; overflow-y: auto;
             z-index: 2000; opacity: 0.85; pointer-events: none;
         }
     </style>
 </head>
 <body style="background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-main);">
 
-    <div id="debug-console">System Online.</div>
+    <div id="debug-console">BEHAVE-AI Engine Online.</div>
 
     <header class="container" style="padding: 1.5rem 0; display: flex; justify-content: space-between; align-items: center;">
-        <a href="index.html" style="text-decoration: none; color: white; font-size: 1.2rem; font-weight: 900;">BEHAVE-SEC</a>
-        <span style="color: var(--accent-primary); font-weight: bold; font-size: 0.8rem; letter-spacing: 1px;">CHALLENGE V2.2</span>
+        <a href="index.html" style="text-decoration: none; color: white; margin-left: 20px; font-size: 1.2rem; font-weight: 900;">BEHAVE-SEC</a>
+        <span style="color: var(--accent-primary); margin-right: 20px; font-weight: bold; font-size: 0.8rem; letter-spacing: 1px;">CHALLENGE V3</span>
     </header>
 
     <div class="container" style="padding: 1rem 0;">
         <div style="text-align: center; max-width: 800px; margin: 0 auto; margin-bottom: 2rem;">
-            <h1 style="color: white; font-size: 3.5rem; font-weight: 800;">Beat The ML.</h1>
-            <p style="color: var(--text-secondary); font-size: 1.2rem;">Owner: Train your rhythm. Intruder: Mimic it.</p>
+            <h1 style="color: white; font-size: 3.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 0.5rem;">Beat The Model.</h1>
+            <p style="color: var(--text-secondary); font-size: 1.2rem;">Owner: Train your fingerprint. Intruder: Try to mimic it.</p>
         </div>
 
         <div class="steps">
@@ -79,7 +100,7 @@
                 <textarea id="owner-input" class="typing-area" rows="4" placeholder="Owner: type here..."></textarea>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span id="owner-status" style="color: var(--text-secondary); font-size: 0.85rem;">Captured: 0 keys (Need 10)</span>
-                    <button class="btn btn-primary" id="btn-train">Train Keyboard</button>
+                    <button type="button" class="btn btn-primary" id="btn-train">Train Keyboard</button>
                 </div>
             </section>
 
@@ -91,18 +112,43 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
                     <span id="mouse-status" style="color: var(--text-secondary);">0 / 10 targets</span>
-                    <button class="btn btn-primary" id="btn-start-mouse">START</button>
+                    <button type="button" class="btn btn-primary" id="btn-start-mouse">START</button>
                 </div>
             </section>
 
             <!-- PHASE 3 -->
-            <section id="panel-intruder" class="challenge-panel" style="border-color: #ff5252;">
+            <section id="panel-intruder" class="challenge-panel">
                 <h2 style="color: #ff5252; margin-bottom: 1rem;">Phase 3: The Attack</h2>
-                <div class="reference-text" style="color: #ff5252;">The quick brown fox jumps over the lazy dog. Cybersecurity relies on human behavior.</div>
-                <textarea id="intruder-input" class="typing-area" rows="4" placeholder="Intruder: mimic now..."></textarea>
+                <div class="reference-text" style="color: #ff5252; border-color: rgba(255, 82, 82, 0.2);">The quick brown fox jumps over the lazy dog. Cybersecurity relies on human behavior.</div>
+                <textarea id="intruder-input" class="typing-area" rows="3" placeholder="Intruder: mimic the text above..."></textarea>
+
+                <!-- Mouse capture arena — records intruder mouse behavior for multimodal detection -->
+                <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 0.5rem; letter-spacing: 0.05em;">🖱️ MOVE YOUR MOUSE IN THE ZONE BELOW WHILE TYPING</p>
+                <div id="intruder-mouse-arena" style="
+                    position: relative; width: 100%; height: 100px;
+                    background: rgba(255,82,82,0.04);
+                    border: 1px dashed rgba(255,82,82,0.25);
+                    border-radius: 10px; cursor: crosshair;
+                    margin-bottom: 1.2rem; overflow: hidden;
+                ">
+                    <div id="intruder-mouse-dot" style="
+                        position: absolute; width: 8px; height: 8px;
+                        background: #ff5252; border-radius: 50%;
+                        transform: translate(-50%, -50%);
+                        pointer-events: none; opacity: 0;
+                        transition: opacity 0.2s;
+                    "></div>
+                    <span id="intruder-arena-hint" style="
+                        position: absolute; top: 50%; left: 50%;
+                        transform: translate(-50%, -50%);
+                        color: rgba(255,82,82,0.35); font-size: 0.78rem;
+                        pointer-events: none;
+                    ">Move mouse here as you type</span>
+                </div>
+
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span id="intruder-status" style="color: var(--text-secondary); font-size: 0.8rem;">Connecting AI...</span>
-                    <button class="btn btn-secondary" id="btn-hack" style="color: #ff5252; border-color: #ff5252;" disabled>Attempt Hack</button>
+                    <button type="button" class="btn btn-secondary" id="btn-hack" style="color: #ff5252; border-color: #ff5252;" disabled>Attempt Hack</button>
                 </div>
 
                 <div id="result-screen" class="result-overlay">
@@ -110,13 +156,14 @@
                     <p id="result-score" style="color: white; font-size: 1.2rem; margin-bottom: 1rem;">Match: 0%</p>
                     <p id="result-desc" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2rem; max-width: 80%; text-align: center;">Your typing rhythm didn't match the owner's profile.</p>
                     
-                    <div class="feedback-box" style="width: 100%; max-width: 400px;">
+                    <div class="feedback-box" style="width: 100%; max-width: 400px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
                         <p style="color: white; font-size: 0.85rem; margin-bottom: 1rem; text-align: center; font-weight: 600;">Identify yourself for the AI:</p>
                         <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 1.5rem;">
-                            <button class="btn btn-primary" style="background: #4CAF50; border-color: #4CAF50; flex: 1;" onclick="submitFeedback(true)">That was Me (Owner)</button>
-                            <button class="btn btn-secondary" style="color: #ff5252; border-color: #ff5252; flex: 1;" onclick="submitFeedback(false)">That was a Hacker</button>
+                            <!-- EXPLICIT TYPE=BUTTON -->
+                            <button type="button" class="btn btn-primary" style="background: #4CAF50; border-color: #4CAF50; flex: 1;" onclick="submitFeedback(true)">That was Me</button>
+                            <button type="button" class="btn btn-secondary" style="color: #ff5252; border-color: #ff5252; flex: 1;" onclick="submitFeedback(false)">Hacker</button>
                         </div>
-                        <button class="btn btn-secondary" style="width: 100%; border-color: var(--border-color); color: var(--text-secondary); font-size: 0.8rem;" onclick="restartChallenge()">Cancel & Restart</button>
+                        <button type="button" class="btn btn-secondary" style="width: 100%; border-color: rgba(255,255,255,0.2); color: var(--text-secondary); font-size: 0.8rem;" onclick="restartChallenge()">Cancel & Restart</button>
                     </div>
                 </div>
             </section>
@@ -125,6 +172,6 @@
 
     <!-- Logic -->
     <script src="js/config.js"></script>
-    <script src="js/challenge.js"></script>
+    <script src="js/challenge.js?v=4"></script>
 </body>
 </html>
